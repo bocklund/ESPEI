@@ -139,10 +139,7 @@ class PriorSpec(object):
             # the key is the parameter type, e.g 'scale', 'scale_relative', 'loc_absolute'
             split_type = k.split('_')
             param = split_type[0]
-            if len(split_type) > 1:
-                param_type = '_'.join(split_type[1:])
-            else:
-                param_type = 'absolute'
+            param_type = '_'.join(split_type[1:]) if len(split_type) > 1 else 'absolute'
             distribution_params[param] = DistributionParameter(v, param_type=param_type)
 
         self.parameters = distribution_params

@@ -97,11 +97,14 @@ def get_prop_samples(dbf, comps, phase_name, desired_data):
     calculate_dict = {
         'P': np.array([]),
         'T': np.array([]),
-        'points': np.atleast_2d([[]]).reshape(-1, sum([len(subl) for subl in phase_constituents])),
+        'points': np.atleast_2d([[]]).reshape(
+            -1, sum(len(subl) for subl in phase_constituents)
+        ),
         'values': np.array([]),
         'weights': [],
         'references': [],
     }
+
 
     for datum in desired_data:
         # extract the data we care about
@@ -180,7 +183,11 @@ def get_thermochemical_data(dbf, comps, phases, datasets, weight_dict=None, symb
             desired_data = get_prop_data(comps, phase_name, prop, datasets, additional_query=(where('solver').exists()))
             if len(desired_data) == 0:
                 continue
-            unique_exclusions = set([tuple(sorted(d.get('excluded_model_contributions', []))) for d in desired_data])
+            unique_exclusions = {
+                tuple(sorted(d.get('excluded_model_contributions', [])))
+                for d in desired_data
+            }
+
             for exclusion in unique_exclusions:
                 data_dict = {
                     'phase_name': phase_name,

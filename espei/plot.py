@@ -76,7 +76,7 @@ def plot_parameters(dbf, comps, phase_name, configuration, symmetry, datasets=No
     # This is for computing properties of formation
     mod_norefstate = Model(dbf, comps, phase_name, parameters={'GHSER'+(c.upper()*2)[:2]: 0 for c in comps})
     # Is this an interaction parameter or endmember?
-    if any([isinstance(conf, list) or isinstance(conf, tuple) for conf in configuration]):
+    if any(isinstance(conf, (list, tuple)) for conf in configuration):
         plots = mix_plots
     else:
         plots = em_plots
@@ -91,7 +91,7 @@ def plot_parameters(dbf, comps, phase_name, configuration, symmetry, datasets=No
                 filtered_plots.append((x_val, y_val, data))
     elif require_data:
         raise ValueError('Plots require datasets, but no datasets were passed.')
-    elif plots == em_plots and not require_data:
+    elif plots == em_plots:
         # How we treat temperature dependence is ambiguous when there is no data, so we raise an error
         raise ValueError('The "require_data=False" option is not supported for non-mixing configurations.')
     elif datasets is not None:
@@ -158,7 +158,12 @@ def dataplot(comps, phases, conds, datasets, ax=None, plot_kwargs=None, tieline_
 
     """
     indep_comps = [key for key, value in conds.items() if isinstance(key, v.X) and len(np.atleast_1d(value)) > 1]
-    indep_pots = [key for key, value in conds.items() if ((key == v.T) or (key == v.P)) and len(np.atleast_1d(value)) > 1]
+    indep_pots = [
+        key
+        for key, value in conds.items()
+        if key in [v.T, v.P] and len(np.atleast_1d(value)) > 1
+    ]
+
     plot_kwargs = plot_kwargs or {}
     phases = sorted(phases)
 
@@ -268,7 +273,10 @@ def dataplot(comps, phases, conds, datasets, ax=None, plot_kwargs=None, tieline_
                 y_points.append(y_val)
 
             # plot the tielines
-            if all([xx is not None and yy is not None for xx, yy in zip(x_points, y_points)]):
+            if all(
+                xx is not None and yy is not None
+                for xx, yy in zip(x_points, y_points)
+            ):
                 ax.plot(x_points, y_points, **updated_tieline_plot_kwargs)
 
     elif projection == 'triangular':
@@ -304,7 +312,10 @@ def dataplot(comps, phases, conds, datasets, ax=None, plot_kwargs=None, tieline_
                 y_points.append(y_val)
 
             # plot the tielines
-            if all([xx is not None and yy is not None for xx, yy in zip(x_points, y_points)]):
+            if all(
+                xx is not None and yy is not None
+                for xx, yy in zip(x_points, y_points)
+            ):
                 ax.plot(x_points, y_points, **updated_tieline_plot_kwargs)
 
 
@@ -324,7 +335,10 @@ def dataplot(comps, phases, conds, datasets, ax=None, plot_kwargs=None, tieline_
             y_points.append(y_points[0])
             # plot
             # check for None values
-            if all([xx is not None and yy is not None for xx, yy in zip(x_points, y_points)]):
+            if all(
+                xx is not None and yy is not None
+                for xx, yy in zip(x_points, y_points)
+            ):
                 ax.plot(x_points, y_points, **updated_tieline_plot_kwargs)
 
     # now we will add the symbols for the references to the legend handles
@@ -390,9 +404,7 @@ def eqdataplot(eq, datasets, ax=None, plot_kwargs=None):
     phases = list(map(str, sorted(set(np.array(eq.Phase.values.ravel(), dtype='U')) - {''}, key=str)))
     comps = list(map(str, sorted(np.array(eq.coords['component'].values, dtype='U'), key=str)))
 
-    ax = dataplot(comps, phases, conds, datasets, ax=ax, plot_kwargs=plot_kwargs)
-
-    return ax
+    return dataplot(comps, phases, conds, datasets, ax=ax, plot_kwargs=plot_kwargs)
 
 
 def multiplot(dbf, comps, phases, conds, datasets, eq_kwargs=None, plot_kwargs=None, data_kwargs=None):
@@ -566,10 +578,7 @@ def _compare_data_to_parameters(dbf, comps, phase_name, desired_data, mod, confi
                 # TODO: Fix this to filter because we need to guarantee the plot points are disordered
                 occ = data['solver']['sublattice_occupancies']
                 subl_idx = np.nonzero([isinstance(c, (list, tuple)) for c in occ[0]])[0]
-                if len(subl_idx) > 1:
-                    subl_idx = int(subl_idx[0])
-                else:
-                    subl_idx = int(subl_idx)
+                subl_idx = int(subl_idx[0]) if len(subl_idx) > 1 else int(subl_idx)
                 indep_var_data = [c[subl_idx][1] for c in occ]
             else:
                 interactions = np.array([i[1][1] for i in get_samples([data])], dtype=np.float)

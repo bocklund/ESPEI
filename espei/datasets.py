@@ -145,16 +145,22 @@ def check_dataset(dataset):
                 #  and the fractions are a list of float
                 if not isinstance(phase, str):
                     raise DatasetError('The first element in the tieline {} for the ZPF point {} should be a string. Instead it is a {} of value {}'.format(tieline, zpf, type(phase), phase))
-                if not all([isinstance(comp, str) for comp in component_list]):
+                if not all(isinstance(comp, str) for comp in component_list):
                     raise DatasetError('The second element in the tieline {} for the ZPF point {} should be a list of strings. Instead it is a {} of value {}'.format(tieline, zpf, type(component_list), component_list))
-                if not all([(isinstance(mole_frac, (int, float)) or mole_frac is None)  for mole_frac in mole_fraction_list]):
+                if not all(
+                    (isinstance(mole_frac, (int, float)) or mole_frac is None)
+                    for mole_frac in mole_fraction_list
+                ):
                     raise DatasetError('The last element in the tieline {} for the ZPF point {} should be a list of numbers. Instead it is a {} of value {}'.format(tieline, zpf, type(mole_fraction_list), mole_fraction_list))
                 # check that the shape of components list and mole fractions list is the same
                 if len(component_list) != len(mole_fraction_list):
                     raise DatasetError('The length of the components list and mole fractions list in tieline {} for the ZPF point {} should be the same.'.format(tieline, zpf))
                 # check that all mole fractions are less than one
                 mf_sum = np.nansum(np.array(mole_fraction_list, dtype=np.float))
-                if any([mf is not None for mf in mole_fraction_list]) and mf_sum > 1.0:
+                if (
+                    any(mf is not None for mf in mole_fraction_list)
+                    and mf_sum > 1.0
+                ):
                     raise DatasetError('Mole fractions for tieline {} for the ZPF point {} sum to greater than one.'.format(tieline, zpf))
 
     # check that the site ratios are valid as well as site occupancies, if applicable

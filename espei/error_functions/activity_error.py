@@ -149,7 +149,11 @@ def calculate_activity_error(dbf, comps, phases, datasets, parameters=None, phas
         # we cannot currently turn broadcasting off, so we have to do equilibrium one by one
         # invert the conditions dicts to make a list of condition dicts rather than a condition dict of lists
         # assume now that the ravelled conditions all have the same size
-        conditions_list = [{c: conditions[c][i] for c in conditions.keys()} for i in range(len(conditions[v.T]))]
+        conditions_list = [
+            {c: conditions[c][i] for c in conditions}
+            for i in range(len(conditions[v.T]))
+        ]
+
         current_chempots = []
         for conds in conditions_list:
             sample_eq_res = equilibrium(dbf, data_comps, data_phases, conds,

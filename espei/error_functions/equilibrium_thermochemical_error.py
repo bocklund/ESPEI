@@ -81,9 +81,15 @@ def build_eqpropdata(data: tinydb.database.Document,
     # Models are now modified in response to the data from this data
     if 'reference_states' in data:
         property_output = output[:-1] if output.endswith('R') else output  # unreferenced model property so we can tell shift_reference_state what to build.
-        reference_states = []
-        for el, vals in data['reference_states'].items():
-            reference_states.append(ReferenceState(v.Species(el), vals['phase'], fixed_statevars=vals.get('fixed_state_variables')))
+        reference_states = [
+            ReferenceState(
+                v.Species(el),
+                vals['phase'],
+                fixed_statevars=vals.get('fixed_state_variables'),
+            )
+            for el, vals in data['reference_states'].items()
+        ]
+
         for mod in models.values():
             mod.shift_reference_state(reference_states, dbf, output=(property_output,))
 
@@ -185,11 +191,7 @@ def calc_prop_differences(eqpropdata: EqPropData,
         * weights for this dataset
 
     """
-    if approximate_equilibrium:
-        _equilibrium = no_op_equilibrium_
-    else:
-        _equilibrium = equilibrium_
-
+    _equilibrium = no_op_equilibrium_ if approximate_equilibrium else equilibrium_
     dbf = eqpropdata.dbf
     species = eqpropdata.species
     phases = eqpropdata.phases

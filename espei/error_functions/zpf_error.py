@@ -205,10 +205,6 @@ def driving_force_to_hyperplane(target_hyperplane_chempots: np.ndarray, comps: S
                                 parameters: np.ndarray, approximate_equilibrium: bool = False) -> float:
     """Calculate the integrated driving force between the current hyperplane and target hyperplane.
     """
-    if approximate_equilibrium:
-        _equilibrium = no_op_equilibrium_
-    else:
-        _equilibrium = equilibrium_
     dbf = phase_region.dbf
     species = phase_region.species
     phases = phase_region.phases
@@ -232,7 +228,11 @@ def driving_force_to_hyperplane(target_hyperplane_chempots: np.ndarray, comps: S
         # Compute energy
         # Compute residual driving force
         # TODO: Check that it actually makes sense to declare this phase 'disordered'
-        num_dof = sum([len(set(c).intersection(species)) for c in dbf.phases[current_phase].constituents])
+        num_dof = sum(
+            len(set(c).intersection(species))
+            for c in dbf.phases[current_phase].constituents
+        )
+
         desired_sitefracs = np.ones(num_dof, dtype=np.float)
         dof_idx = 0
         for c in dbf.phases[current_phase].constituents:
@@ -251,14 +251,17 @@ def driving_force_to_hyperplane(target_hyperplane_chempots: np.ndarray, comps: S
     else:
         # Extract energies from single-phase calculations
         grid = calculate_(dbf, species, [current_phase], str_statevar_dict, models, phase_records, pdens=500, fake_points=True)
+        _equilibrium = no_op_equilibrium_ if approximate_equilibrium else equilibrium_
         single_eqdata = _equilibrium(species, phase_records, cond_dict, grid)
         if np.all(np.isnan(single_eqdata.NP)):
             logging.debug('Calculation failure: all NaN phases with phases: {}, conditions: {}, parameters {}'.format(current_phase, cond_dict, parameters))
             return np.inf
         select_energy = float(single_eqdata.GM)
-        region_comps = []
-        for comp in [c for c in sorted(comps) if c != 'VA']:
-            region_comps.append(cond_dict.get(v.X(comp), np.nan))
+        region_comps = [
+            cond_dict.get(v.X(comp), np.nan)
+            for comp in [c for c in sorted(comps) if c != 'VA']
+        ]
+
         region_comps[region_comps.index(np.nan)] = 1 - np.nansum(region_comps)
         driving_force = np.multiply(target_hyperplane_chempots, region_comps).sum() - select_energy
         driving_force = float(driving_force)

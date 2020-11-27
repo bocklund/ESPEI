@@ -44,7 +44,7 @@ def get_data(comps, phase_name, configuration, symmetry, datasets, prop):
 
     def recursive_zip(a, b):
         if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
-            return list(recursive_zip(x, y) for x, y in zip(a, b))
+            return [recursive_zip(x, y) for x, y in zip(a, b)]
         else:
             return list(zip(a, b))
 

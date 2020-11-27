@@ -9,7 +9,7 @@ import numpy as np
 
 def tuplify(x):
     """Convert a list to a tuple, or wrap an object in a tuple if it's not a list or tuple."""
-    if isinstance(x, list) or isinstance(x, tuple):
+    if isinstance(x, (list, tuple)):
         return tuple(x)
     else:
         return tuple([x])
@@ -18,7 +18,7 @@ def tuplify(x):
 def recursive_tuplify(x):
     """Recursively convert a nested list to a tuple"""
     def _tuplify(y):
-        if isinstance(y, list) or isinstance(y, tuple):
+        if isinstance(y, (list, tuple)):
             return tuple(_tuplify(i) if isinstance(i, (list, tuple)) else i for i in y)
         else:
             return y
@@ -157,9 +157,14 @@ def sorted_interactions(interactions, max_interaction_order, symmetry):
         # interaction of (A:A:A,B:A,B,C) has 2 order-1 interactions, 1 order-2
         # interaction and 1 order-3 interaction. It's sort score would be (1, 1, 2).
         # thus it should sort below a (2, 1, 2), for example.
-        sort_score = []
-        for interaction_order in reversed(range(1, max_interaction_order+1)):
-            sort_score.append(sum((isinstance(n, (list, tuple)) and len(n) == interaction_order) for n in x))
+        sort_score = [
+            sum(
+                (isinstance(n, (list, tuple)) and len(n) == interaction_order)
+                for n in x
+            )
+            for interaction_order in reversed(range(1, max_interaction_order + 1))
+        ]
+
         return canonical_sort_key(recursive_tuplify(sort_score) + x)
 
     interactions = sorted(set(canonicalize(i, symmetry) for i in interactions), key=int_sort_key)
@@ -209,7 +214,7 @@ def generate_interactions(endmembers, order, symmetry):
         # occupants is a tuple of each endmember's ith constituent, looping through i
         for occupants in zip(*endmembers):
             # if all occupants are the same, the ith element of the interaction is not an interacting element
-            if all([occupants[0] == x for x in occupants[1:]]):
+            if all(occupants[0] == x for x in occupants[1:]):
                 interaction.append(occupants[0])
             else:  # there is an interaction
                 interacting_species = tuple(sorted(set(occupants)))
@@ -250,9 +255,9 @@ def interaction_test(configuration, order=None):
     """
     interacting_species = [len(subl) for subl in configuration if isinstance(subl, (tuple,list))]
     if order is None:  # checking for any interaction
-        return any([subl_occupation > 1 for subl_occupation in interacting_species])
+        return any(subl_occupation > 1 for subl_occupation in interacting_species)
     else:
-        return any([subl_occupation == order for subl_occupation in interacting_species])
+        return order in interacting_species
 
 
 def endmembers_from_interaction(configuration):
@@ -292,4 +297,9 @@ def generate_endmembers(sublattice_model, symmetry=None):
     [('A', 'A'), ('A', 'B'), ('B', 'B')]
 
     """
-    return sorted(set(canonicalize(i, symmetry) for i in list(itertools.product(*sublattice_model))))
+    return sorted(
+        {
+            canonicalize(i, symmetry)
+            for i in list(itertools.product(*sublattice_model))
+        }
+    )

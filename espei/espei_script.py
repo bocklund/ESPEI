@@ -110,10 +110,12 @@ def get_run_settings(input_dict):
     """
     run_settings = schema.normalized(input_dict)
     # can't have chain_std_deviation and chains_per_parameter defaults with restart_trace
-    if run_settings.get('mcmc') is not None:
-            if run_settings['mcmc'].get('restart_trace') is None:
-                run_settings['mcmc']['chains_per_parameter'] = run_settings['mcmc'].get('chains_per_parameter', 2)
-                run_settings['mcmc']['chain_std_deviation'] = run_settings['mcmc'].get('chain_std_deviation', 0.1)
+    if (
+        run_settings.get('mcmc') is not None
+        and run_settings['mcmc'].get('restart_trace') is None
+    ):
+        run_settings['mcmc']['chains_per_parameter'] = run_settings['mcmc'].get('chains_per_parameter', 2)
+        run_settings['mcmc']['chain_std_deviation'] = run_settings['mcmc'].get('chain_std_deviation', 0.1)
     if not schema.validate(run_settings):
         raise ValueError(schema.errors)
     return run_settings
@@ -276,7 +278,7 @@ def main():
                 load_datasets([dataset])
             except (ValueError, DatasetError) as e:
                 errors.append(e)
-        if len(errors) > 0:
+        if errors:
             print(*errors, sep='\n')
             return 1
         else:
@@ -290,7 +292,7 @@ def main():
     # continue with setup
     # load the settings
     ext = os.path.splitext(input_file)[-1]
-    if ext == '.yml' or ext == '.yaml':
+    if ext in ['.yml', '.yaml']:
         with open(input_file) as f:
             input_settings = yaml.safe_load(f)
     elif ext == '.json':

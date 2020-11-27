@@ -42,8 +42,6 @@ class SciPyOptimizer(OptimizerBase):
                 multi_phase_error = calculate_zpf_error(parameters=parameters, **zpf_kwargs)
             except (ValueError, np.linalg.LinAlgError) as e:
                 raise e
-                print(e)
-                multi_phase_error = -np.inf
         else:
             multi_phase_error = 0
         if activity_kwargs is not None:
@@ -56,6 +54,5 @@ class SciPyOptimizer(OptimizerBase):
             single_phase_error = 0
         total_error = multi_phase_error + single_phase_error + actvity_error
         logging.log(TRACE, 'Likelihood - {:0.2f}s - Thermochemical: {:0.3f}. ZPF: {:0.3f}. Activity: {:0.3f}. Total: {:0.3f}.'.format(time.time() - starttime, single_phase_error, multi_phase_error, actvity_error, total_error))
-        error = np.array(total_error, dtype=np.float64)
-        return error
+        return np.array(total_error, dtype=np.float64)
 

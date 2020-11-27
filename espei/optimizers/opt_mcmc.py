@@ -89,14 +89,10 @@ class EmceeOptimizer(OptimizerBase):
                             "parameter space.")
         nchains = params.size * chains_per_parameter
         logging.info('Initializing {} chains with {} chains per parameter.'.format(nchains, chains_per_parameter))
-        if deterministic:
-            rng = np.random.RandomState(1769)
-        else:
-            rng = np.random.RandomState()
+        rng = np.random.RandomState(1769) if deterministic else np.random.RandomState()
         # apply a Gaussian random to each parameter with std dev of std_deviation*parameter
         tiled_parameters = np.tile(params, (nchains, 1))
-        chains = rng.normal(tiled_parameters, np.abs(tiled_parameters * std_deviation))
-        return chains
+        return rng.normal(tiled_parameters, np.abs(tiled_parameters * std_deviation))
 
     @staticmethod
     def initialize_chains_from_trace(restart_trace):
@@ -289,8 +285,6 @@ class EmceeOptimizer(OptimizerBase):
                 multi_phase_error = calculate_zpf_error(parameters=np.array(params), **zpf_kwargs)
             except (ValueError, np.linalg.LinAlgError) as e:
                 raise e
-                print(e)
-                multi_phase_error = -np.inf
         else:
             multi_phase_error = 0
         if equilibrium_thermochemical_kwargs is not None:

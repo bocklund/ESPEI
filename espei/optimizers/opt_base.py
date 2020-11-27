@@ -56,14 +56,14 @@ class OptimizerBase(object):
         raise NotImplementedError("The `predict` method not implemented. Create a subclass of OptimizerBase with `predict` overridden to use it")
 
     def commit(self,):
-        if len(self.staged_nodes) > 0:
-            for staged in self.staged_nodes:
-                self.graph.add_node(staged, self.current_node)
-                self.current_node = staged
-            self.staged_nodes = []
-            self.reset_database()
-        else:
+        if len(self.staged_nodes) <= 0:
             raise OptimizerError("Nothing to commit. Stage a commit by running the `fit` method.")
+
+        for staged in self.staged_nodes:
+            self.graph.add_node(staged, self.current_node)
+            self.current_node = staged
+        self.staged_nodes = []
+        self.reset_database()
 
     def discard(self):
         """Discard all staged nodes"""

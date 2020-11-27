@@ -56,23 +56,21 @@ def calculate_(dbf: Database, species: Sequence[v.Species], phases: Sequence[str
                                          parameters={})
         all_phase_data.append(phase_ds)
 
-    if len(all_phase_data) > 1:
-        concatenated_coords = all_phase_data[0].coords
+    if len(all_phase_data) <= 1:
+        return all_phase_data[0]
+    concatenated_coords = all_phase_data[0].coords
 
-        data_vars = all_phase_data[0].data_vars
-        concatenated_data_vars = {}
-        for var in data_vars.keys():
-            data_coords = data_vars[var][0]
-            points_idx = data_coords.index('points')  # concatenation axis
-            arrs = []
-            for phase_data in all_phase_data:
-                arrs.append(getattr(phase_data, var))
-            concat_data = np.concatenate(arrs, axis=points_idx)
-            concatenated_data_vars[var] = (data_coords, concat_data)
-        final_ds = LightDataset(data_vars=concatenated_data_vars, coords=concatenated_coords)
-    else:
-        final_ds = all_phase_data[0]
-    return final_ds
+    data_vars = all_phase_data[0].data_vars
+    concatenated_data_vars = {}
+    for var in data_vars.keys():
+        data_coords = data_vars[var][0]
+        points_idx = data_coords.index('points')  # concatenation axis
+        arrs = [getattr(phase_data, var) for phase_data in all_phase_data]
+        concat_data = np.concatenate(arrs, axis=points_idx)
+        concatenated_data_vars[var] = (data_coords, concat_data)
+    return LightDataset(
+        data_vars=concatenated_data_vars, coords=concatenated_coords
+    )
 
 
 def equilibrium_(species: Sequence[v.Species], phase_records: Dict[str, PhaseRecord],

@@ -41,7 +41,11 @@ TRACE = 15  # TRACE logging level
 
 
 def _param_present_in_database(dbf, phase_name, configuration, param_type):
-    const_arr = tuple([tuple(map(lambda x: v.Species(x), subl)) for subl in map(tuplify, configuration)])
+    const_arr = tuple(
+        tuple(map(lambda x: v.Species(x), subl))
+        for subl in map(tuplify, configuration)
+    )
+
     # parameter order doesn't matter here, since the generated might not exactly match. Always override.
     query = (where('phase_name') == phase_name) & \
             (where('parameter_type') == param_type) & \
@@ -246,7 +250,11 @@ def fit_ternary_interactions(dbf, phase_name, symmetry, endmembers, datasets, ri
         degree_polys = np.zeros(3, dtype=np.object)
         YS = sympy.Symbol('YS')
         # asymmetric parameters should have Mugiannu V_I/V_J/V_K, while symmetric just has YS
-        is_asymmetric = any([(k.has(sympy.Symbol('V_I'))) and (v != 0) for k, v in parameters.items()])
+        is_asymmetric = any(
+            (k.has(sympy.Symbol('V_I'))) and (v != 0)
+            for k, v in parameters.items()
+        )
+
         if is_asymmetric:
             params = [(2, YS*sympy.Symbol('V_K')), (1, YS*sympy.Symbol('V_J')), (0, YS*sympy.Symbol('V_I'))]  # (excess parameter degree, symbol) tuples
         else:

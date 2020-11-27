@@ -35,13 +35,10 @@ class PickleableTinyDB(TinyDB):
         # first remove the query cache. The cache speed is not important to us.
         for table_name in self.tables():
             self.table(table_name)._query_cache = {}
-        pickle_dict = {}
-        for key, value in self.__dict__.items():
-            if key == '_table':
-                pickle_dict[key] = value.all()
-            else:
-                pickle_dict[key] = value
-        return pickle_dict
+        return {
+            key: value.all() if key == '_table' else value
+            for key, value in self.__dict__.items()
+        }
 
     def __setstate__(self, state):
         self.__init__(storage=MemoryStorage)
@@ -55,8 +52,9 @@ class ImmediateClient(Client):
     """
     def map(self, f, *iterators, **kwargs):
         _client = super(ImmediateClient, self)
-        result = _client.gather(_client.map(f, *[list(it) for it in iterators], **kwargs))
-        return result
+        return _client.gather(
+            _client.map(f, *[list(it) for it in iterators], **kwargs)
+        )
 
 
 def sigfigs(x, n):
@@ -159,11 +157,10 @@ def flexible_open_string(obj):
         if '\n' in obj:
             # if the string has linebreaks, then we assume it's a raw string. Return it.
             return obj
-        else:
-            # assume it is a path
-            with open(obj) as fp:
-                read_string = fp.read()
-            return read_string
+        # assume it is a path
+        with open(obj) as fp:
+            read_string = fp.read()
+        return read_string
     elif hasattr(obj, 'read'):
         # assume it is file-like
         read_string = obj.read()
@@ -227,7 +224,7 @@ def bib_marker_map(bib_keys, markers=None):
         filled_markers = ['o', 'v', 's', 'd', 'P', 'X', '^', '<', '>']
         fill_styles = ['none', 'full', 'top', 'right', 'bottom', 'left']
         markers = itertools.product(fill_styles, filled_markers)
-    b_m_map = dict()
+    b_m_map = {}
     for ref, marker_tuple in zip(sorted(bib_keys), markers):
         fill, mark = marker_tuple
         b_m_map[ref] = {
@@ -341,9 +338,8 @@ def formatted_parameter(dbf, symbol, unique=True):
         parameter_type = '{}{}'.format(result['parameter_type'], result['parameter_order'])
         # override non-interacting to G if there's no interaction
         has_interaction = ',' in const_array
-        if not has_interaction:
-            if (result['parameter_type'] == 'G') or (result['parameter_type'] == 'L'):
-                parameter_type = 'G'
+        if not has_interaction and result['parameter_type'] in ['G', 'L']:
+            parameter_type = 'G'
 
         term = parameter_term(result['parameter'], symbol)
         formatted_param = FormattedParameter(result['phase_name'],
