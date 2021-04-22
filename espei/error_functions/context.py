@@ -12,7 +12,7 @@ from espei.utils import database_symbols_to_fit
 _log = logging.getLogger(__name__)
 
 
-def setup_context(dbf, datasets, symbols_to_fit=None, data_weights=None, make_callables=True):
+def setup_context(dbf, datasets, symbols_to_fit=None, data_weights=None, make_callables=True, remote=False):
     """
     Set up a context dictionary for calculating error.
 
@@ -80,7 +80,7 @@ def setup_context(dbf, datasets, symbols_to_fit=None, data_weights=None, make_ca
     _log.trace('Finished getting equilibrium thermochemical data (%0.2fs)', t2-t1)
     _log.trace('Getting ZPF data (this may take some time)')
     t1 = time.time()
-    zpf_data = get_zpf_data(dbf, comps, phases, datasets, parameters)
+    zpf_data = get_zpf_data(dbf, comps, phases, datasets, parameters, remote=remote)
     t2 = time.time()
     _log.trace('Finished getting ZPF data (%0.2fs)', t2-t1)
 
