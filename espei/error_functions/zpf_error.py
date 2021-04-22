@@ -17,6 +17,7 @@ composition conditions to calculate chemical potentials at.
 import logging
 import warnings
 from collections import OrderedDict
+from dataclasses import dataclass
 from typing import Sequence, Dict, NamedTuple, Any, Union, List, Tuple
 
 import numpy as np
@@ -68,7 +69,7 @@ def _solve(equations, desired_syms, phase_name, comp_conds):
 
 def _solve_sitefracs_composition(mod: Model, comp_conds: Dict[v.X, float]) -> Dict[v.Y, Union[sympy.Expr, v.Y]]:
     """Return a dictionary of site fraction expressions that solves the prescribed composition
-    
+
     Given a Model and global composition conditions, solve for site fractions
     (dependent and independent) that can produce points (internal degrees of
     freedom) that satisfy both the global composition conditions AND internal
@@ -120,13 +121,13 @@ def _sample_solution_constitution(mod: Model, soln: Dict[v.Y, Union[sympy.Expr, 
     is to remove any points which have negative site fractions. It is the
     responsibility of the caller to enforce that the sum of positive site
     fractions is unity (which will prevent any site fractions > 1).
-    
+
     Each degree of freedom will have
 
-    * ``pdens`` points sampled linearly on the interval ``[0, 1]``    
+    * ``pdens`` points sampled linearly on the interval ``[0, 1]``
     * ``pdens`` points sampled in logspace on the intervals
        ``[MIN_SITE_FRACTION, 0.01]`` and ``[0.99, 1.0]``.
-    
+
     Returns
     -------
     ArrayLike
@@ -218,20 +219,32 @@ def extract_phases_comps(phase_region):
     return region_phases, region_comp_conds, phase_flags
 
 
-PhaseRegion = NamedTuple('PhaseRegion', (('region_phases', Sequence[str]),
-                                         ('potential_conds', Dict[v.StateVariable, float]),
-                                         ('comp_conds', Sequence[Dict[v.X, float]]),
-                                         ('phase_points', Sequence[ArrayLike]),
-                                         ('phase_flags', Sequence[str]),
-                                         ('dbf', Database),
-                                         ('species', Sequence[v.Species]),
-                                         ('phases', Sequence[str]),
-                                         ('models', Dict[str, Model]),
-                                         ('phase_records', Sequence[Dict[str, PhaseRecord]]),
-                                         ))
+@dataclass
+class PhaseRegion:
+    region_phases: Sequence[str]
+    potential_conds: Dict[v.StateVariable, float]
+    comp_conds: Sequence[Dict[v.X, float]]
+    phase_points: Sequence[ArrayLike]
+    phase_flags: Sequence[str]
+    dbf: Database
+    species: Sequence[v.Species]
+    phases: Sequence[str]
+    models: Dict[str, Model]
+    phase_records: Sequence[Dict[str, PhaseRecord]]
+# PhaseRegion = NamedTuple('PhaseRegion', (('region_phases', Sequence[str]),
+#                                          ('potential_conds', Dict[v.StateVariable, float]),
+#                                          ('comp_conds', Sequence[Dict[v.X, float]]),
+#                                          ('phase_points', Sequence[ArrayLike]),
+#                                          ('phase_flags', Sequence[str]),
+#                                          ('dbf', Database),
+#                                          ('species', Sequence[v.Species]),
+#                                          ('phases', Sequence[str]),
+#                                          ('models', Dict[str, Model]),
+#                                          ('phase_records', Sequence[Dict[str, PhaseRecord]]),
+#                                          ))
 
 
-def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], datasets: PickleableTinyDB, parameters: Dict[str, float]):
+def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], datasets: PickleableTinyDB, parameters: Dict[str, float], remote=True):
     """
     Return the ZPF data used in the calculation of ZPF error
 
@@ -256,7 +269,6 @@ def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], dat
     desired_data = datasets.search((tinydb.where('output') == 'ZPF') &
                                    (tinydb.where('components').test(lambda x: set(x).issubset(comps))) &
                                    (tinydb.where('phases').test(lambda x: len(set(phases).intersection(x)) > 0)))
-
     zpf_data = []  # 1:1 correspondence with each dataset
     for data in desired_data:
         data_comps = list(set(data['components']).union({'VA'}))
@@ -286,8 +298,11 @@ def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], dat
                 sitefrac_soln = _solve_sitefracs_composition(mod, comp_conds)
                 phase_points = _sample_solution_constitution(mod, sitefrac_soln)
                 region_phase_points.append(phase_points)
-            region_phase_records = [build_phase_records(dbf, species, data_phases, {**region_potential_conds, **comp_conds}, models, parameters=parameters, build_gradients=True, build_hessians=True)
-                                    for comp_conds in region_comp_conds]
+            if remote:
+                region_phase_records = [None for comp_conds in region_comp_conds]
+            else:
+                region_phase_records = [build_phase_records(dbf, species, data_phases, {**region_potential_conds, **comp_conds}, models, parameters=parameters, build_gradients=True, build_hessians=True)
+                                        for comp_conds in region_comp_conds]
             phase_regions.append(PhaseRegion(region_phases, region_potential_conds, region_comp_conds, region_phase_points, phase_flags, dbf, species, data_phases, models, region_phase_records))
 
         data_dict = {
@@ -325,8 +340,13 @@ def estimate_hyperplane(phase_region: PhaseRegion, parameters: np.ndarray, appro
     models = phase_region.models
     for comp_conds, phase_flag, phase_records in zip(phase_region.comp_conds, phase_region.phase_flags, phase_region.phase_records):
         # We are now considering a particular tie vertex
-        update_phase_record_parameters(phase_records, parameters)
         cond_dict = {**comp_conds, **phase_region.potential_conds}
+        if phase_records is None:
+            print('none phase recs')
+            syms = map(str, models[phases[0]]._parameters_arg)
+            param_dict = dict(zip(syms, parameters.tolist()))
+            phase_records = build_phase_records(dbf, species, phase_region.phases, cond_dict, models, parameters=param_dict, build_gradients=True, build_hessians=True)
+        update_phase_record_parameters(phase_records, parameters)
         for key, val in cond_dict.items():
             if val is None:
                 cond_dict[key] = np.nan
@@ -373,6 +393,10 @@ def driving_force_to_hyperplane(target_hyperplane_chempots: np.ndarray, comps: S
     phase_points = phase_region.phase_points[vertex_idx]
     phase_flag = phase_region.phase_flags[vertex_idx]
     phase_records = phase_region.phase_records[vertex_idx]
+    if phase_records is None:
+        syms = map(str, models[phases[0]]._parameters_arg)
+        param_dict = dict(zip(syms, parameters.tolist()))
+        phase_records = build_phase_records(dbf, species, phase_region.phases, cond_dict, models, parameters=param_dict, build_gradients=True, build_hessians=True)
     update_phase_record_parameters(phase_records, parameters)
     for key, val in cond_dict.items():
         if val is None:
