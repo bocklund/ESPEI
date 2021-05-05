@@ -14,7 +14,7 @@ from pycalphad import Database, Model, variables as v
 from espei.paramselect import generate_parameters
 from espei.error_functions import *
 from espei.error_functions.equilibrium_thermochemical_error import calc_prop_differences
-from espei.error_functions.zpf_error import _solve_sitefracs_composition
+from espei.error_functions.zpf_error import _solve_sitefracs_composition, calculate_zpf_driving_forces
 
 from .fixtures import datasets_db
 from .testing_data import *
@@ -272,10 +272,18 @@ def test_zpf_error_species(datasets_db):
     zero_error_probability = 2 * scipy.stats.norm(loc=0, scale=1000.0).logpdf(0.0)
 
     zpf_data = get_zpf_data(dbf, comps, phases, datasets_db, {})
-    exact_likelihood = calculate_zpf_error(zpf_data, approximate_equilibrium=False)
-    assert np.isclose(exact_likelihood, zero_error_probability)
-    approx_likelihood = calculate_zpf_error(zpf_data, approximate_equilibrium=True)
-    assert np.isclose(approx_likelihood, zero_error_probability)
+    exact_driving_forces = calculate_zpf_driving_forces(zpf_data, approximate_equilibrium=False)
+
+    print(exact_driving_forces)
+    # exact_likelihood = calculate_zpf_error(zpf_data, approximate_equilibrium=False)
+    # assert np.isclose(exact_likelihood, zero_error_probability)
+    # assert np.isclose(exact_likelihood, zero_error_probability)
+    approx_driving_forces = calculate_zpf_driving_forces(zpf_data, approximate_equilibrium=True)
+    print(approx_driving_forces)
+    # approx_likelihood = calculate_zpf_error(zpf_data, approximate_equilibrium=True)
+    # assert np.isclose(approx_likelihood, zero_error_probability)
+    # assert np.isclose(approx_likelihood, zero_error_probability)
+    raise
 
 
 def test_zpf_error_equilibrium_failure(datasets_db):
@@ -465,7 +473,7 @@ def test_site_fraction_solutions(constituents, site_ratios, comp_conds, expected
             soln = _solve_sitefracs_composition(mod, comp_conds)
             print(soln)
         return
-    
+
     expected_num_dependent_symbols = total_num_symbols - expected_num_independent_symbols
     num_dependent_symbols = len(soln.keys())
     assert num_dependent_symbols == expected_num_dependent_symbols
