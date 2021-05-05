@@ -277,13 +277,13 @@ def test_zpf_error_species(datasets_db):
     print(exact_driving_forces)
     exact_likelihood = calculate_zpf_error(zpf_data, approximate_equilibrium=False)
     assert np.isclose(exact_likelihood, zero_error_probability)
-    assert np.isclose(exact_driving_forces, [0.0, 0.0], atol=0.001)
+    assert np.all(np.isclose(exact_driving_forces, [0.0, 0.0], atol=0.001))
     # assert np.isclose(exact_likelihood, zero_error_probability)
     approx_driving_forces = calculate_zpf_driving_forces(zpf_data, approximate_equilibrium=True)[0]
     print(approx_driving_forces)
     approx_likelihood = calculate_zpf_error(zpf_data, approximate_equilibrium=True)
     assert np.isclose(exact_driving_forces, [0.0, 0.0], atol=2.0)  # accept some error from approximation
-    assert np.isclose(approx_likelihood, zero_error_probability)
+    assert np.all(np.isclose(approx_likelihood, zero_error_probability))
     # assert np.isclose(approx_likelihood, zero_error_probability)
     raise
 
