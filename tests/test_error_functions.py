@@ -272,16 +272,18 @@ def test_zpf_error_species(datasets_db):
     zero_error_probability = 2 * scipy.stats.norm(loc=0, scale=1000.0).logpdf(0.0)
 
     zpf_data = get_zpf_data(dbf, comps, phases, datasets_db, {})
-    exact_driving_forces = calculate_zpf_driving_forces(zpf_data, approximate_equilibrium=False)
 
+    exact_driving_forces = calculate_zpf_driving_forces(zpf_data, approximate_equilibrium=False)[0]
     print(exact_driving_forces)
-    # exact_likelihood = calculate_zpf_error(zpf_data, approximate_equilibrium=False)
+    exact_likelihood = calculate_zpf_error(zpf_data, approximate_equilibrium=False)
+    assert np.isclose(exact_likelihood, zero_error_probability)
+    assert np.isclose(exact_driving_forces, [0.0, 0.0], atol=0.001)
     # assert np.isclose(exact_likelihood, zero_error_probability)
-    # assert np.isclose(exact_likelihood, zero_error_probability)
-    approx_driving_forces = calculate_zpf_driving_forces(zpf_data, approximate_equilibrium=True)
+    approx_driving_forces = calculate_zpf_driving_forces(zpf_data, approximate_equilibrium=True)[0]
     print(approx_driving_forces)
-    # approx_likelihood = calculate_zpf_error(zpf_data, approximate_equilibrium=True)
-    # assert np.isclose(approx_likelihood, zero_error_probability)
+    approx_likelihood = calculate_zpf_error(zpf_data, approximate_equilibrium=True)
+    assert np.isclose(exact_driving_forces, [0.0, 0.0], atol=2.0)  # accept some error from approximation
+    assert np.isclose(approx_likelihood, zero_error_probability)
     # assert np.isclose(approx_likelihood, zero_error_probability)
     raise
 
