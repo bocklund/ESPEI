@@ -7,6 +7,7 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import numpy as np
+from sympy import Symbol
 import tinydb
 from pycalphad import Model, calculate, equilibrium, variables as v
 from pycalphad.core.utils import unpack_components
