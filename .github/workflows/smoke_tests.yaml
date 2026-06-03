@@ -12,8 +12,8 @@ jobs:
     steps:
       - uses: astral-sh/setup-uv@v7
         with:
-          ignore-empty-workdir: "true"
-          ignore-nothing-to-cache: "true"
+          ignore-empty-workdir: "true"  # resolve warning about "Empty workdir detected. This may cause unexpected behavior. You can enable ignore-empty-workdir to mute this warning."
+          cache-dependency-glob: ""  # resolve warning about "No file matched to ... The cache will never get invalidated. Make sure you have checked out the target repository and configured the cache-dependency-glob input correctly."
       - run: uv init --bare --name smoke-test
       - run: uv add "espei @ git+https://github.com/${{ github.repository }}.git@${{ github.sha }}"
       - run: uv run python -c "import espei; print(espei.__version__)"
