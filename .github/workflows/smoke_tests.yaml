@@ -1,0 +1,15 @@
+name: Smoke Tests
+
+on: [push, pull_request]
+
+jobs:
+  git-url:
+    # see the following for valid dependency specifiers
+    # https://packaging.python.org/en/latest/specifications/dependency-specifiers/#dependency-specifiers
+    # we construct from the GitHub Actions context
+    name: Install and import from git url
+    runs-on: ubuntu-latest
+    steps:
+      - uses: astral-sh/setup-uv@v7
+      - run: uv init --bare
+      - run: uv add "espei @ git+https://github.com/${{ github.repository }}.git@${{ github.sha }}"
