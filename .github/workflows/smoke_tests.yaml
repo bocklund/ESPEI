@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: astral-sh/setup-uv@v7
+        with:
+          ignore-empty-workdir: "true"
+          ignore-nothing-to-cache: "true"
       - run: uv init --bare --name smoke-test
       - run: uv add "espei @ git+https://github.com/${{ github.repository }}.git@${{ github.sha }}"
       - run: uv run python -c "import espei; print(espei.__version__)"
