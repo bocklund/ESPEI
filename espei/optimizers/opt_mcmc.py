@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 import emcee
 from espei.priors import PriorSpec, build_prior_specs, rv_zero
-from espei.utils import unpack_piecewise, optimal_parameters, ImmediateClient
+from espei.utils import unpack_piecewise, optimal_parameters
 from espei.error_functions.context import setup_context
 from .opt_base import OptimizerBase
 
@@ -177,11 +177,6 @@ class EmceeOptimizer(OptimizerBase):
                 n = int((progbar_width) * float(i + 1) / iterations)
                 _log.info("\r[%s%s] (%d of %d)", '#' * n, ' ' * (progbar_width - n), i + 1, iterations)
                 _log.info("Current time (s): %.1f", time.time() - iter_start_time)
-                # Specific case to ImmediateClient to output memory usage
-                if isinstance(self.scheduler, ImmediateClient):
-                    scheduler_info = self.scheduler.scheduler_info()
-                    memory = [float(worker['metrics'].get('memory', 0)) for worker in scheduler_info['workers'].values()]
-                    _log.info("Total memory (GB): %.3f, Min/max worker memory (GB): [%.3f, %.3f]", np.sum(memory)/1e9, np.amin(memory)/1e9, np.amax(memory)/1e9)
         except KeyboardInterrupt:
             pass
         _log.info('MCMC complete.')
@@ -232,8 +227,7 @@ class EmceeOptimizer(OptimizerBase):
         """
         # Set NumPy print options so logged arrays print on one line. Reset at the end.
         np.set_printoptions(linewidth=sys.maxsize)
-        cbs = self.scheduler is None
-        ctx = setup_context(self.dbf, ds, symbols, data_weights=mcmc_data_weights, phase_models=self.phase_models, make_callables=cbs)
+        ctx = setup_context(self.dbf, ds, symbols, data_weights=mcmc_data_weights, phase_models=self.phase_models)
         symbols_to_fit = ctx['symbols_to_fit']
         initial_guess = np.array([unpack_piecewise(self.dbf.symbols[s]) for s in symbols_to_fit])
 

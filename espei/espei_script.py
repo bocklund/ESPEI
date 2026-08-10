@@ -16,8 +16,6 @@ import warnings
 
 import numpy as np
 import yaml
-import dask
-import distributed
 import symengine
 from tinydb import where
 import emcee
@@ -27,14 +25,12 @@ from pycalphad import Database
 import espei
 from espei.validation import schema
 from espei import generate_parameters
-from espei.utils import ImmediateClient, database_symbols_to_fit, import_qualified_object
+from espei.parallel import DaskPool
+from espei.utils import database_symbols_to_fit, import_qualified_object
 from espei.datasets import DatasetError, load_datasets, recursive_glob, apply_tags
 from espei.optimizers.opt_mcmc import EmceeOptimizer
 
 _log = logging.getLogger(__name__)
-
-# Force distributed's work-stealing to be False
-dask.config.set({'distributed.scheduler.work-stealing': False})
 
 parser = argparse.ArgumentParser(description=__doc__)
 
@@ -58,33 +54,15 @@ def log_version_info():
     """Print version info to the log"""
     _log.info('espei version       %s', espei.__version__)
     _log.info('pycalphad version   %s', pycalphad.__version__)
-    _log.info('dask version        %s', dask.__version__)
-    _log.info('distributed version %s', distributed.__version__)
+    try:
+        import dask, distributed
+        _log.info('dask version        %s', dask.__version__)
+        _log.info('distributed version %s', distributed.__version__)
+    except ImportError:
+        _log.info('dask and distributed are not installed')
     _log.info('symengine version   %s', symengine.__version__)
     _log.info('emcee version       %s', emcee.__version__)
     _log.info("If you use ESPEI for work presented in a publication, we ask that you cite the following paper:\n    %s", espei.__citation__)
-
-
-def _raise_dask_work_stealing():
-    """
-    Raise if work stealing is turned on in dask
-
-    Raises
-    -------
-    ValueError
-
-    Examples
-    --------
-    >>> _raise_dask_work_stealing()  # should not raise if dask is set correctly
-
-    """
-    import dask, distributed
-    has_work_stealing = dask.config.get('distributed.scheduler.work_stealing')
-    if has_work_stealing:
-        raise ValueError("The parameter 'distributed.scheduler.work-stealing' is on in dask. "
-                         "This parameter causes some instability for long-running processes. "
-                         "As of ESPEI v0.7.9, 'work-stealing' should be disabled automatically. "
-                         "If you are seeing this error, please contact a developer.")
 
 
 def get_run_settings(input_dict):
@@ -194,28 +172,16 @@ def run_espei(run_settings):
 
         # scheduler setup
         if mcmc_settings['scheduler'] is not None:
-            _raise_dask_work_stealing()  # check for work-stealing
             if mcmc_settings['scheduler'] == 'dask':
-                _raise_dask_work_stealing()  # check for work-stealing
-                from distributed import LocalCluster
                 cores = mcmc_settings.get('cores', multiprocessing.cpu_count())
                 if (cores > multiprocessing.cpu_count()):
                     cores = multiprocessing.cpu_count()
                     _log.warning("The number of cores chosen is larger than available. "
                                  "Defaulting to run on the %s available cores.", cores)
                 # TODO: make dask-scheduler-verbosity a YAML input so that users can debug. Should have the same log levels as verbosity
-                scheduler = LocalCluster(n_workers=cores, threads_per_worker=1, processes=True, memory_limit=0)
-                client = ImmediateClient(scheduler)
-                try:
-                    bokeh_server_info = client.scheduler_info()['services']['bokeh']
-                    _log.info("bokeh server for dask scheduler at localhost:%s", bokeh_server_info)
-                except KeyError:
-                    _log.info("Install bokeh to use the dask bokeh server.")
+                client = DaskPool(cores=cores, log_verbosity=log_verbosity, log_filename=log_filename)
             else: # we were passed a scheduler file name
-                client = ImmediateClient(scheduler_file=mcmc_settings['scheduler'])
-            client.run(espei.logger.config_logger, verbosity=log_verbosity, filename=log_filename)
-            client.run(np.set_printoptions, linewidth=sys.maxsize)
-            _log.info("Running with dask scheduler: %s [%s cores]" % (client.scheduler, sum(client.ncores().values())))
+                client = DaskPool(scheduler_file=mcmc_settings['scheduler'], log_verbosity=log_verbosity, log_filename=log_filename)
         else:
             client = None
             _log.info("Not using a parallel scheduler. ESPEI is running MCMC on a single core.")

@@ -2,26 +2,42 @@
 Test espei.utils classes and functions.
 """
 import pickle
+import subprocess
+import sys
 
 import pytest
 from tinydb import where
-from espei.utils import ImmediateClient, PickleableTinyDB, MemoryStorage, \
+import espei.utils
+from espei.utils import PickleableTinyDB, MemoryStorage, \
     bib_marker_map, extract_aliases
 
 from .fixtures import datasets_db, tmp_file
 from .testing_data import CU_MG_TDB
 
 
-def test_immediate_client_returns_map_results_directly():
-    """Calls ImmediateClient.map should return the results, instead of Futures."""
-    from distributed import LocalCluster
-    cli = ImmediateClient(LocalCluster(n_workers=1))
-    num_list = range(0, 11)
-#    square = lambda x: x**2
-    def square(x):
-      return x**2
-    map_result = cli.map(square, num_list)
-    assert map_result == [square(x) for x in num_list]
+def test_immediate_client_is_deprecated():
+    """espei.utils.ImmediateClient still resolves, but warns."""
+    with pytest.warns(DeprecationWarning):
+        cls = espei.utils.ImmediateClient
+    assert cls is espei.parallel.DaskPool
+
+
+# Run in a subprocess because other tests in this session may have imported
+# distributed already.
+_NO_DISTRIBUTED_SCRIPT = """
+import sys
+import espei.utils
+assert "distributed" not in sys.modules, "importing espei.utils imported distributed"
+espei.utils.ImmediateClient
+assert "distributed" not in sys.modules, "espei.utils.ImmediateClient imported distributed"
+"""
+
+
+def test_importing_espei_utils_does_not_import_distributed():
+    """espei.utils is the module that used to put distributed in every import chain."""
+    proc = subprocess.run([sys.executable, "-c", _NO_DISTRIBUTED_SCRIPT],
+                          capture_output=True, text=True, timeout=300)
+    assert proc.returncode == 0, proc.stderr
 
 
 def test_pickelable_tinydb_can_be_pickled_and_unpickled():

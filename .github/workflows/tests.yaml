@@ -20,14 +20,22 @@ jobs:
       - run: uv run sphinx-build --fail-on-warning --keep-going docs/ docs/_build
 
 # PyTest: Run automated tests with PyTest using both release and development versions of pycalphad
+# The release matrix additionally runs the full suite both with and without the
+# `dask` extra, so that a module-scope `import distributed` fails loudly.
   PyTest-release:
-    name: Test Python ${{ matrix.python-version }} - pycalphad release
+    name: Test Python ${{ matrix.python-version }} - pycalphad release - ${{ matrix.dask }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       max-parallel: 100
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
+        dask: ["with dask", "without dask"]
+        include:
+          - dask: "with dask"
+            extras: "--extra dask"
+          - dask: "without dask"
+            extras: ""
     steps:
     - uses: actions/checkout@v7
       with:
@@ -36,7 +44,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
-    - run: uv sync --dev
+    - run: uv sync --dev ${{ matrix.extras }}
     - run: uv run pytest -v
 
   PyTest-develop:
@@ -55,5 +63,5 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
-    - run: uv sync --dev -P "pycalphad @ git+https://github.com/pycalphad/pycalphad.git@develop"
+    - run: uv sync --dev --extra dask -P "pycalphad @ git+https://github.com/pycalphad/pycalphad.git@develop"
     - run: uv run pytest -v

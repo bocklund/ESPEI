@@ -31,8 +31,6 @@ requires-python = ">=3.11"
 dependencies = [
     "cerberus",
     "corner",
-    "dask[complete]>=2",
-    "distributed>=2",
     "emcee<3",
     "matplotlib",
     "numpy>=1.20",
@@ -51,6 +49,10 @@ dynamic = ["version"]
 Homepage = "https://espei.org/"
 
 [project.optional-dependencies]
+# distributed pulls in dask core. Users who want the dashboard install bokeh.
+dask = [
+    "distributed>=2021.11.2",
+]
 dev = [
     "furo",
     "ipython",

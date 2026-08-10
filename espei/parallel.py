@@ -22,11 +22,16 @@ needing to know anything about ``emcee``.
 
 import logging
 import multiprocessing
+import sys
 from concurrent.futures import ProcessPoolExecutor
+
+import numpy as np
+
+from espei.logger import config_logger
 
 _log = logging.getLogger(__name__)
 
-__all__ = ["MultiprocessingPool"]
+__all__ = ["DaskPool", "MultiprocessingPool"]
 
 
 # Worker-process state. ``_PINNED_FN`` is installed once per worker by
@@ -108,3 +113,115 @@ class MultiprocessingPool:
             self._pool.shutdown(cancel_futures=True)
             self._pool = None
             self._pinned_fn = None
+
+
+def _import_distributed():
+    """Import dask and distributed, or raise pointing at the ``dask`` extra."""
+    try:
+        import dask
+        import distributed
+    except ImportError as exc:
+        raise ImportError(
+            "The 'dask' scheduler requires dask and distributed, which are not "
+            "installed. Install them with `pip install espei[dask]`, or use the "
+            "default 'multiprocessing' scheduler."
+        ) from exc
+    return dask, distributed
+
+
+def _raise_dask_work_stealing():
+    """
+    Raise if work stealing is turned on in dask
+
+    Raises
+    -------
+    ValueError
+    """
+    dask, _ = _import_distributed()
+    has_work_stealing = dask.config.get('distributed.scheduler.work_stealing')
+    if has_work_stealing:
+        raise ValueError("The parameter 'distributed.scheduler.work-stealing' is on in dask. "
+                         "This parameter causes some instability for long-running processes. "
+                         "As of ESPEI v0.7.9, 'work-stealing' should be disabled automatically. "
+                         "If you are seeing this error, please contact a developer.")
+
+
+def _apply(x, fn):
+    """Call the scattered callable ``fn`` on ``x``. Picklable by reference."""
+    return fn(x)
+
+
+class DaskPool:
+    """
+    A pool backed by a ``dask.distributed`` cluster.
+
+    Starts a local cluster of ``cores`` single-threaded worker processes, unless
+    an existing ``cluster`` (a cluster object or a scheduler address) or a
+    ``scheduler_file`` written by an externally managed scheduler is given.
+    ``dask`` and ``distributed`` are imported here rather than at module scope,
+    so they are only needed by users who ask for this pool.
+
+    Worker-side setup that has no equivalent in other pools lives here: ESPEI's
+    logging configuration and NumPy print options are applied on every worker,
+    and per-iteration worker memory is logged from :meth:`map`.
+    """
+
+    def __init__(self, cluster=None, scheduler_file=None, cores=None,
+                 log_verbosity=0, log_filename=None):
+        dask, distributed = _import_distributed()
+        # Work stealing causes instability in long-running processes (ESPEI #134).
+        dask.config.set({'distributed.scheduler.work-stealing': False})
+        _raise_dask_work_stealing()
+        if cluster is None and scheduler_file is None:
+            # memory_limit=0 lets the system manage memory, so dask does not
+            # pause or kill workers holding the (large) pinned context.
+            cluster = distributed.LocalCluster(n_workers=cores, threads_per_worker=1, processes=True, memory_limit=0)
+            self._owned_cluster = cluster
+        else:
+            self._owned_cluster = None
+        self._client = distributed.Client(cluster, scheduler_file=scheduler_file)
+        # The active memory manager removes data duplicated across workers, which
+        # would leave the pinned callable on one worker and force every other
+        # worker to fetch it over the network.
+        self._client.amm.stop()
+        self._client.run(config_logger, verbosity=log_verbosity, filename=log_filename)
+        self._client.run(np.set_printoptions, linewidth=sys.maxsize)
+        try:
+            _log.info("dask dashboard at %s", self._client.dashboard_link)
+        except KeyError:
+            _log.info("Install bokeh to use the dask dashboard.")
+        _log.info("Running with dask scheduler: %s [%s cores]", self._client.scheduler, sum(self._client.nthreads().values()))
+        self._pinned_fn = None
+        self._pinned_future = None
+        self._num_maps = 0
+
+    def map(self, f, iterable):
+        """
+        Return ``[f(x) for x in iterable]``, computed by the cluster's workers.
+
+        Blocks until every result is available and preserves input order.
+        """
+        # Scattering pins the (large) callable on every worker so that it crosses
+        # the wire once per run instead of once per call. A cancelled future means
+        # a worker was restarted and lost it, so scatter again.
+        if f is not self._pinned_fn or self._pinned_future.cancelled():
+            self._pinned_future = self._client.scatter(f, broadcast=True)
+            self._pinned_fn = f
+        self._log_worker_memory()
+        return self._client.gather(self._client.map(_apply, list(iterable), fn=self._pinned_future))
+
+    def _log_worker_memory(self):
+        """Log total and per-worker memory once per MCMC iteration."""
+        # emcee maps twice per iteration, once for each half of the walkers.
+        self._num_maps += 1
+        if self._num_maps % 2 != 0:
+            return
+        workers = self._client.scheduler_info()['workers'].values()
+        memory = [float(worker['metrics'].get('memory', 0)) for worker in workers]
+        _log.info("Total memory (GB): %.3f, Min/max worker memory (GB): [%.3f, %.3f]", np.sum(memory)/1e9, np.amin(memory)/1e9, np.amax(memory)/1e9)
+
+    def close(self):
+        """Disconnect, and shut down the cluster if this pool started one."""
+        self._client.close()
+        if self._owned_cluster is not None:
+            self._owned_cluster.close()

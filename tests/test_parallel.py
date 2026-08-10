@@ -24,7 +24,7 @@ import pytest
 from pycalphad import Database
 
 from espei.optimizers.opt_mcmc import EmceeOptimizer
-from espei.parallel import MultiprocessingPool
+from espei.parallel import DaskPool, MultiprocessingPool, _raise_dask_work_stealing
 
 from .fixtures import datasets_db
 from .testing_data import (
@@ -52,6 +52,15 @@ class SerialPool:
         pass
 
 
+try:
+    import distributed  # noqa: F401
+    HAS_DASK = True
+except ImportError:
+    HAS_DASK = False
+
+requires_dask = pytest.mark.skipif(not HAS_DASK, reason="dask and distributed are not installed")
+
+
 def _serial_pool():
     return SerialPool()
 
@@ -60,11 +69,15 @@ def _multiprocessing_pool():
     return MultiprocessingPool(2)
 
 
-# Parameterization shared by every conformance test. DaskPool joins this list
-# when it exists.
+def _dask_pool():
+    return DaskPool(cores=2)
+
+
+# Parameterization shared by every conformance test.
 POOL_FACTORIES = [
     pytest.param(_serial_pool, id="serial"),
     pytest.param(_multiprocessing_pool, id="multiprocessing"),
+    pytest.param(_dask_pool, id="dask", marks=requires_dask),
 ]
 
 
@@ -177,6 +190,67 @@ def test_multiprocessing_pool_close_is_a_noop_before_any_map():
     pool.close()  # must not raise
     pool.close()  # idempotent
     assert pool._pool is None
+
+
+# --- Dask ---------------------------------------------------------------------
+
+
+@requires_dask
+def test_raise_dask_work_stealing():
+    """Work stealing destabilizes long runs, so ESPEI refuses to run with it on."""
+    import dask
+    with dask.config.set({"distributed.scheduler.work-stealing": False}):
+        _raise_dask_work_stealing()  # must not raise
+    with dask.config.set({"distributed.scheduler.work-stealing": True}):
+        with pytest.raises(ValueError):
+            _raise_dask_work_stealing()
+
+
+# Blocking dask has to happen in a subprocess: unimporting distributed from a
+# session that already imported it is not something distributed supports.
+# A None entry in sys.modules makes `import dask` raise ImportError while
+# `importlib.util.find_spec("dask")` still politely reports "not installed",
+# which other packages (e.g. pint) probe for at import time.
+_BLOCK_DASK = """
+import sys
+sys.modules["dask"] = None
+sys.modules["distributed"] = None
+"""
+
+_IMPORTS_WITHOUT_DASK = _BLOCK_DASK + """
+import espei
+import espei.utils
+import espei.datasets
+import espei.paramselect
+import espei.parallel
+import espei.espei_script
+"""
+
+_DASK_POOL_WITHOUT_DASK = _BLOCK_DASK + """
+from espei.parallel import DaskPool
+try:
+    DaskPool()
+except ImportError as exc:
+    assert "espei[dask]" in str(exc), str(exc)
+else:
+    raise AssertionError("DaskPool did not raise without dask installed")
+"""
+
+
+def _run_snippet(source):
+    return subprocess.run([sys.executable, "-c", source],
+                          capture_output=True, text=True, timeout=300)
+
+
+def test_espei_imports_without_dask():
+    """The point of the dask extra: ESPEI must import with dask unavailable."""
+    proc = _run_snippet(_IMPORTS_WITHOUT_DASK)
+    assert proc.returncode == 0, proc.stderr
+
+
+def test_dask_pool_without_dask_names_the_extra():
+    proc = _run_snippet(_DASK_POOL_WITHOUT_DASK)
+    assert proc.returncode == 0, proc.stderr
 
 
 # --- Criterion 4: behavior when the caller has no __main__ guard -------------

@@ -13,7 +13,7 @@ from espei.error_functions.residual_base import residual_function_registry
 _log = logging.getLogger(__name__)
 
 
-def setup_context(dbf, datasets, symbols_to_fit=None, data_weights=None, phase_models=None, make_callables=True):
+def setup_context(dbf, datasets, symbols_to_fit=None, data_weights=None, phase_models=None):
     """
     Set up a context dictionary for calculating error.
 

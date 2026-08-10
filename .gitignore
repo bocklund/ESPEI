@@ -14,3 +14,6 @@ docs/_build
 *.sublime-project
 *.sublime-workspace
 .vscode
+
+# Riptide artifacts (cloud-synced)
+.humanlayer/tasks/
