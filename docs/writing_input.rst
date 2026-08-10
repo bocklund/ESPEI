@@ -347,22 +347,27 @@ cores
 :type: int
 :min: 1
 
-How many cores from available cores to use during parallelization with dask or emcee.
+How many cores from available cores to use during parallelization with the ``multiprocessing`` or ``dask`` schedulers.
 If the chosen number of cores is larger than available, then this value is ignored and espei defaults to using the number available.
 
-Cores does not take affect for MPIPool scheduler option. MPIPool requires the number of processors be set directly with MPI.
+Cores does not take effect for the ``null`` scheduler or for a JSON scheduler file, which uses the resources of the scheduler it connects to.
 
 scheduler
 ---------
 
 :type: string
-:default: dask
-:options: dask | null | JSON file
+:default: multiprocessing
+:options: multiprocessing | dask | null | JSON file
 
 Which scheduler to use for parallelization.
-You can choose from either ``dask``, ``null``, or pass the path to a JSON scheduler file created by dask-distributed.
+You can choose from ``multiprocessing``, ``dask``, ``null``, or pass the path to a JSON scheduler file created by dask-distributed.
 
-Choosing ``dask`` allows for the choice of cores used through the cores key.
+Choosing ``multiprocessing`` runs MCMC in parallel using a pool of processes from the Python standard library and requires no additional packages.
+Note that worker processes are started with the ``spawn`` start method, so scripts that call ESPEI from Python (rather than through the ``espei`` command) must do so under an ``if __name__ == "__main__":`` guard.
+
+Choosing ``dask`` runs MCMC on a local dask-distributed cluster, and requires dask and distributed, which are installed by ``pip install espei[dask]``.
+
+Both ``multiprocessing`` and ``dask`` allow for the choice of cores used through the cores key.
 
 Choosing ``null`` will result in no parallel scheduler being used. This is useful for debugging.
 

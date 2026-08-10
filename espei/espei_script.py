@@ -9,7 +9,6 @@ from __future__ import print_function
 import os
 import argparse
 import logging
-import multiprocessing
 import sys
 import json
 import warnings
@@ -25,7 +24,7 @@ from pycalphad import Database
 import espei
 from espei.validation import schema
 from espei import generate_parameters
-from espei.parallel import DaskPool
+from espei.parallel import make_scheduler
 from espei.utils import database_symbols_to_fit, import_qualified_object
 from espei.datasets import DatasetError, load_datasets, recursive_glob, apply_tags
 from espei.optimizers.opt_mcmc import EmceeOptimizer
@@ -171,20 +170,8 @@ def run_espei(run_settings):
             raise OSError('Probfile "%s" exists and would be overwritten by a new run. Use the ``output.probfile`` setting to set a different name.', probfile)
 
         # scheduler setup
-        if mcmc_settings['scheduler'] is not None:
-            if mcmc_settings['scheduler'] == 'dask':
-                cores = mcmc_settings.get('cores', multiprocessing.cpu_count())
-                if (cores > multiprocessing.cpu_count()):
-                    cores = multiprocessing.cpu_count()
-                    _log.warning("The number of cores chosen is larger than available. "
-                                 "Defaulting to run on the %s available cores.", cores)
-                # TODO: make dask-scheduler-verbosity a YAML input so that users can debug. Should have the same log levels as verbosity
-                client = DaskPool(cores=cores, log_verbosity=log_verbosity, log_filename=log_filename)
-            else: # we were passed a scheduler file name
-                client = DaskPool(scheduler_file=mcmc_settings['scheduler'], log_verbosity=log_verbosity, log_filename=log_filename)
-        else:
-            client = None
-            _log.info("Not using a parallel scheduler. ESPEI is running MCMC on a single core.")
+        # TODO: make dask-scheduler-verbosity a YAML input so that users can debug. Should have the same log levels as verbosity
+        client = make_scheduler(mcmc_settings, log_verbosity=log_verbosity, log_filename=log_filename)
 
         # get a Database
         if mcmc_settings.get('input_db'):

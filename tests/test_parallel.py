@@ -14,6 +14,8 @@ The tests here are also the go/no-go criteria for shipping a standard library
 5. Sane behavior on all CI platforms.
 """
 
+import logging
+import multiprocessing
 import os
 import subprocess
 import sys
@@ -23,8 +25,9 @@ import numpy as np
 import pytest
 from pycalphad import Database
 
+import espei.parallel
 from espei.optimizers.opt_mcmc import EmceeOptimizer
-from espei.parallel import DaskPool, MultiprocessingPool, _raise_dask_work_stealing
+from espei.parallel import DaskPool, MultiprocessingPool, make_scheduler, _raise_dask_work_stealing
 
 from .fixtures import datasets_db
 from .testing_data import (
@@ -112,7 +115,13 @@ def _report_worker_state(x):
 
     Reads ``espei.parallel._INSTALL_COUNT`` *inside the worker*, which counts how
     many times the mapped callable has been shipped to this process.
+
+    Sleeps so that every worker is put to work. ProcessPoolExecutor only starts
+    another worker when none is idle, so one worker drains a queue of instant
+    tasks -- on a loaded machine, often enough to make an assertion about the
+    number of workers flaky.
     """
+    time.sleep(0.05)
     import espei.parallel
     return (x, espei.parallel._INSTALL_COUNT, os.getpid())
 
@@ -192,6 +201,62 @@ def test_multiprocessing_pool_close_is_a_noop_before_any_map():
     assert pool._pool is None
 
 
+# --- make_scheduler: the input file facing factory ---------------------------
+
+
+def test_make_scheduler_multiprocessing_uses_every_core_by_default():
+    pool = make_scheduler({'scheduler': 'multiprocessing'})
+    assert isinstance(pool, MultiprocessingPool)
+    assert pool.cores == multiprocessing.cpu_count()
+
+
+def test_make_scheduler_honors_cores():
+    assert make_scheduler({'scheduler': 'multiprocessing', 'cores': 2}).cores == 2
+
+
+def test_make_scheduler_caps_cores_at_the_available_cores(caplog):
+    """Cores is validated eagerly here, because workers start at the first map."""
+    available = multiprocessing.cpu_count()
+    with caplog.at_level(logging.WARNING, logger="espei.parallel"):
+        pool = make_scheduler({'scheduler': 'multiprocessing', 'cores': available + 1})
+    assert pool.cores == available
+    assert "larger than available" in caplog.text
+
+
+def test_make_scheduler_returns_none_for_a_null_scheduler(caplog):
+    with caplog.at_level(logging.WARNING, logger="espei.parallel"):
+        assert make_scheduler({'scheduler': None}) is None
+    assert caplog.text == ""
+
+
+def test_make_scheduler_warns_that_cores_is_ignored_without_a_scheduler(caplog):
+    """Cores sizes a pool ESPEI starts, so it means nothing for a serial run."""
+    with caplog.at_level(logging.WARNING, logger="espei.parallel"):
+        assert make_scheduler({'scheduler': None, 'cores': 2}) is None
+    assert "'cores' setting has no effect" in caplog.text
+
+
+def test_make_scheduler_passes_a_json_path_as_a_dask_scheduler_file(monkeypatch, caplog):
+    """A *.json scheduler connects to an externally managed cluster, which sizes itself."""
+    calls = []
+    monkeypatch.setattr(espei.parallel, "DaskPool", lambda **kwargs: calls.append(kwargs))
+    settings = {'scheduler': 'my-scheduler.json', 'cores': 2}
+    with caplog.at_level(logging.WARNING, logger="espei.parallel"):
+        make_scheduler(settings, log_verbosity=2, log_filename='espei.log')
+    assert calls == [dict(scheduler_file='my-scheduler.json', log_verbosity=2, log_filename='espei.log')]
+    assert "'cores' setting has no effect" in caplog.text
+
+
+@requires_dask
+def test_make_scheduler_builds_a_working_dask_pool():
+    pool = make_scheduler({'scheduler': 'dask', 'cores': 1})
+    try:
+        assert isinstance(pool, DaskPool)
+        assert list(pool.map(_square, [1, 2, 3])) == [1, 4, 9]
+    finally:
+        pool.close()
+
+
 # --- Dask ---------------------------------------------------------------------
 
 
@@ -237,6 +302,18 @@ else:
 """
 
 
+_MAKE_SCHEDULER_WITHOUT_DASK = _BLOCK_DASK + """
+from espei.parallel import make_scheduler
+try:
+    make_scheduler({'scheduler': 'dask'})
+except ImportError as exc:
+    assert "espei[dask]" in str(exc), str(exc)
+else:
+    raise AssertionError("make_scheduler did not raise without dask installed")
+assert make_scheduler({'scheduler': 'multiprocessing'}) is not None
+"""
+
+
 def _run_snippet(source):
     return subprocess.run([sys.executable, "-c", source],
                           capture_output=True, text=True, timeout=300)
@@ -250,6 +327,12 @@ def test_espei_imports_without_dask():
 
 def test_dask_pool_without_dask_names_the_extra():
     proc = _run_snippet(_DASK_POOL_WITHOUT_DASK)
+    assert proc.returncode == 0, proc.stderr
+
+
+def test_make_scheduler_without_dask_names_the_extra():
+    """Asking for dask without the extra must be actionable; the default still works."""
+    proc = _run_snippet(_MAKE_SCHEDULER_WITHOUT_DASK)
     assert proc.returncode == 0, proc.stderr
 
 

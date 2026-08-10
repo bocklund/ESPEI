@@ -2,6 +2,8 @@
 Tests for input file validation
 """
 
+import copy
+
 import pytest
 import yaml
 from espei.espei_script import get_run_settings
@@ -162,7 +164,7 @@ def test_correct_defaults_are_applied_from_minimal_specification():
     assert d['generate_parameters'].pop('fitting_description') is gibbs_energy_fitting_description
     assert len(d['generate_parameters']) == 2
     assert d['mcmc'].pop('save_interval') == 1
-    assert d['mcmc'].pop('scheduler') == 'dask'
+    assert d['mcmc'].pop('scheduler') == 'multiprocessing'
     assert d['mcmc'].pop('chains_per_parameter') == 2
     assert d['mcmc'].pop('chain_std_deviation') == 0.1
     assert d['mcmc'].pop('deterministic') is True
@@ -174,12 +176,45 @@ def test_correct_defaults_are_applied_from_minimal_specification():
 
 def test_chains_per_parameter_read_correctly():
     """The chains per parameter option should take effect when passed."""
-    d = {k: v for k, v in MCMC_RUN_DICT.items()}
+    d = copy.deepcopy(MCMC_RUN_DICT)
     d['mcmc']['chains_per_parameter'] = 6
     parsed_settings = get_run_settings(d)
     assert parsed_settings['mcmc']['chains_per_parameter'] == 6
 
     d['mcmc']['chains_per_parameter'] = 5
+    with pytest.raises(ValueError):
+        get_run_settings(d)
+
+
+@pytest.mark.parametrize("scheduler", ['multiprocessing', 'dask', 'my-scheduler.json', None])
+def test_supported_schedulers_validate(scheduler):
+    """Every scheduler ESPEI can build must pass validation unchanged."""
+    d = copy.deepcopy(MCMC_RUN_DICT)
+    d['mcmc']['scheduler'] = scheduler
+    assert get_run_settings(d)['mcmc']['scheduler'] == scheduler
+
+
+@pytest.mark.parametrize("scheduler", ['multiproc', 'threads', 'my-scheduler.yaml'])
+def test_unsupported_schedulers_are_rejected(scheduler):
+    d = copy.deepcopy(MCMC_RUN_DICT)
+    d['mcmc']['scheduler'] = scheduler
+    with pytest.raises(ValueError):
+        get_run_settings(d)
+
+
+def test_cores_read_correctly():
+    """Cores must be a positive integer and is not defaulted."""
+    d = copy.deepcopy(MCMC_RUN_DICT)
+    assert 'cores' not in get_run_settings(d)['mcmc']
+
+    d['mcmc']['cores'] = 4
+    assert get_run_settings(d)['mcmc']['cores'] == 4
+
+    d['mcmc']['cores'] = 0
+    with pytest.raises(ValueError):
+        get_run_settings(d)
+
+    d['mcmc']['cores'] = 'two'
     with pytest.raises(ValueError):
         get_run_settings(d)
 

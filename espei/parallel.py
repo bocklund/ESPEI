@@ -31,7 +31,7 @@ from espei.logger import config_logger
 
 _log = logging.getLogger(__name__)
 
-__all__ = ["DaskPool", "MultiprocessingPool"]
+__all__ = ["DaskPool", "MultiprocessingPool", "make_scheduler"]
 
 
 # Worker-process state. ``_PINNED_FN`` is installed once per worker by
@@ -225,3 +225,44 @@ class DaskPool:
         self._client.close()
         if self._owned_cluster is not None:
             self._owned_cluster.close()
+
+
+def make_scheduler(mcmc_settings, log_verbosity=0, log_filename=None):
+    """
+    Build the pool described by the ``mcmc`` settings of an ESPEI input file.
+
+    Parameters
+    ----------
+    mcmc_settings : dict
+        Validated ``mcmc`` settings. Only the ``scheduler`` and ``cores`` keys
+        are read. ``scheduler`` is ``'multiprocessing'``, ``'dask'``, the path
+        to a JSON scheduler file written by an externally managed dask
+        scheduler, or None to run serially.
+    log_verbosity : int
+        Verbosity to configure ESPEI's logging with on dask workers.
+    log_filename : str
+        File for dask workers to log to.
+
+    Returns
+    -------
+    An object with a ``map`` method, or None to let ``emcee`` use builtin ``map``.
+    """
+    scheduler = mcmc_settings['scheduler']
+    cores = mcmc_settings.get('cores')
+    if scheduler in ('multiprocessing', 'dask'):
+        if cores is None:
+            cores = multiprocessing.cpu_count()
+        elif cores > multiprocessing.cpu_count():
+            cores = multiprocessing.cpu_count()
+            _log.warning("The number of cores chosen is larger than available. "
+                         "Defaulting to run on the %s available cores.", cores)
+        if scheduler == 'multiprocessing':
+            return MultiprocessingPool(cores)
+        return DaskPool(cores=cores, log_verbosity=log_verbosity, log_filename=log_filename)
+    # Neither of the remaining schedulers sizes a pool of its own.
+    if cores is not None:
+        _log.warning("The 'cores' setting has no effect with the '%s' scheduler and is ignored.", scheduler)
+    if scheduler is None:
+        _log.info("Not using a parallel scheduler. ESPEI is running MCMC on a single core.")
+        return None
+    return DaskPool(scheduler_file=scheduler, log_verbosity=log_verbosity, log_filename=log_filename)
