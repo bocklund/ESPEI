@@ -111,6 +111,9 @@ def run_espei(run_settings):
     Returns
     -------
     Either a Database (for generate parameters only) or a tuple of (Database, sampler)
+
+    If using parallelization options, MUST be used with a ``if __name__ == "__main__"``
+    to prevent a fork bomb.
     """
     run_settings = get_run_settings(run_settings)
     system_settings = run_settings['system']

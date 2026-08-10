@@ -1,25 +1,22 @@
-=========
-Changelog
-=========
+=============
+Release Notes
+=============
 
 |version| (development)
 =======================
 
 Improvements
 ------------
-* Add a ``multiprocessing`` scheduler for MCMC, built on the Python standard library, which needs no packages beyond ESPEI's required dependencies. It is now the default value of ``mcmc.scheduler``. (`@bocklund`_ - :issue:`292`)
-* Parallelization backends now live in the new ``espei.parallel`` module, as ``espei.parallel.MultiprocessingPool`` and ``espei.parallel.DaskPool``. ``EmceeOptimizer(scheduler=...)`` accepts any object with a blocking, order-preserving ``map(f, iterable)`` method, so alternative pools can be used from Python without changes to ESPEI. (`@bocklund`_ - :issue:`292`)
+* Add better support for MCMC parallelization backends in ``espei.parallel`` (`@bocklund`_ - :issue:`292`)
+
+  - ``EmceeOptimizer(scheduler=...)`` accepts any object with a blocking, order-preserving ``map(f, iterable)`` method, so alternative pools can be used from Python without changes to ESPEI
+  - A stdlib ``multiprocessing`` scheduler that requires no additional dependences is implemented at ``espei.parallel.MultiprocessingPool``. It is now the default value of ``mcmc.scheduler``.
+  - ``espei.utils.ImmediateClient`` is deprecated in favor of ``espei.parallel.DaskPool``. ``dask`` and ``distributed`` are now optional dependencies, installed by ``pip install espei[dask]``, and are required only for ``mcmc.scheduler: dask``.
 
 Breaking changes
 ----------------
-* ``dask`` and ``distributed`` are no longer installed with ESPEI. They are now an optional dependency, installed by ``pip install espei[dask]``, and are required only for ``mcmc.scheduler: dask`` and for dask scheduler files. Selecting either without them installed raises an ``ImportError`` naming the extra. Note that ``espei[dask]`` installs ``distributed`` (which requires dask core); install ``bokeh`` as well to use the dask dashboard. (`@bocklund`_ - :issue:`292`)
-* The default value of ``mcmc.scheduler`` changed from ``dask`` to ``multiprocessing``. Input files that set ``mcmc.scheduler`` explicitly are unaffected. (`@bocklund`_ - :issue:`292`)
-* The ``multiprocessing`` scheduler starts its worker processes with the ``spawn`` start method. Code that calls ESPEI from Python at module scope, such as a script calling ``run_espei()``, must be run under an ``if __name__ == "__main__":`` guard. Runs started with the ``espei`` command are unaffected. (`@bocklund`_ - :issue:`292`)
 * ``espei.error_functions.context.setup_context`` no longer takes a ``make_callables`` argument. It has had no effect since ESPEI 0.8.9. Callers passing it positionally must remove it. (`@bocklund`_ - :issue:`292`)
 
-Deprecations
-------------
-* ``espei.utils.ImmediateClient`` is deprecated in favor of ``espei.parallel.DaskPool``. Importing it emits a ``DeprecationWarning``. (`@bocklund`_ - :issue:`292`)
 
 0.9.1 (2026-06-05)
 ==================
