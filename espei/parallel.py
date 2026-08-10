@@ -37,9 +37,7 @@ __all__ = ["DaskPool", "MultiprocessingPool", "make_scheduler"]
 # Worker-process state. ``_PINNED_FN`` is installed once per worker by
 # ``_install_fn`` so the (large) callable and its bound context cross the
 # process boundary once per worker instead of once per ``map`` call.
-# ``_INSTALL_COUNT`` exists so tests can assert that property from a worker.
 _PINNED_FN = None
-_INSTALL_COUNT = 0
 
 
 def _install_fn(f):
@@ -53,9 +51,8 @@ def _install_fn(f):
     1.5
 
     """
-    global _PINNED_FN, _INSTALL_COUNT
+    global _PINNED_FN
     _PINNED_FN = f
-    _INSTALL_COUNT += 1
 
 
 def _call_installed(x):

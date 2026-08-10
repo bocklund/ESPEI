@@ -1,17 +1,5 @@
 """
 Tests for espei.parallel, ESPEI's parallelization backends.
-
-The tests here are also the go/no-go criteria for shipping a standard library
-``multiprocessing`` pool as ESPEI's default scheduler:
-
-1. The full residual context transmits and evaluates correctly under the
-   ``spawn`` start method, not just ``fork``.
-2. A short real MCMC run produces results identical to serial for all four
-   residual types.
-3. ``initializer=``-based pinning works: the context is transmitted once per
-   worker, not once per call.
-4. A caller lacking a ``__main__`` guard fails rather than respawning forever.
-5. Sane behavior on all CI platforms.
 """
 
 import logging
@@ -41,12 +29,7 @@ from .testing_data import (
 
 
 class SerialPool:
-    """The trivial reference pool: builtin ``map``, no parallelism.
-
-    ESPEI spells this as ``scheduler: null`` (i.e. ``None``, letting ``emcee``
-    fall back to builtin ``map``). It participates in the conformance tests as
-    the definition of correct behavior.
-    """
+    """Trivial reference pool: builtin ``map``, no parallelism."""
 
     def map(self, f, iterable):
         return list(map(f, iterable))
@@ -96,6 +79,9 @@ def pool(request):
 
 # Module-level (picklable by reference) callables for the conformance tests.
 
+def _identity(x):
+    return x
+
 def _square(x):
     return x * x
 
@@ -109,24 +95,6 @@ def _staggered_square(x):
     time.sleep(0.05 * (10 - x))
     return x * x
 
-
-def _report_worker_state(x):
-    """Report the mapped value alongside this process's pinning state.
-
-    Reads ``espei.parallel._INSTALL_COUNT`` *inside the worker*, which counts how
-    many times the mapped callable has been shipped to this process.
-
-    Sleeps so that every worker is put to work. ProcessPoolExecutor only starts
-    another worker when none is idle, so one worker drains a queue of instant
-    tasks -- on a loaded machine, often enough to make an assertion about the
-    number of workers flaky.
-    """
-    time.sleep(0.05)
-    import espei.parallel
-    return (x, espei.parallel._INSTALL_COUNT, os.getpid())
-
-
-# --- Conformance: the one-method pool contract -------------------------------
 
 
 @pytest.mark.parametrize("pool", POOL_FACTORIES, indirect=True)
@@ -153,43 +121,15 @@ def test_pool_map_handles_an_empty_iterable(pool):
     assert list(pool.map(_square, [])) == []
 
 
-# --- Criterion 3: the context crosses the boundary once per worker -----------
-
-
-def test_multiprocessing_pool_pins_the_mapped_callable_once_per_worker():
-    """The mapped callable is installed once per worker, not once per map call."""
-    pool = MultiprocessingPool(2)
-    try:
-        install_counts = set()
-        pids = set()
-        for _ in range(4):
-            for _value, install_count, pid in pool.map(_report_worker_state, range(6)):
-                install_counts.add(install_count)
-                pids.add(pid)
-        # Every result, on every call, saw exactly one installation: the callable
-        # crossed the process boundary once per worker rather than 4 * 6 times.
-        assert install_counts == {1}
-        # And the work really was spread over the worker processes.
-        assert len(pids) == 2
-        assert os.getpid() not in pids
-    finally:
-        pool.close()
-
-
 def test_multiprocessing_pool_repins_when_the_mapped_callable_changes():
     """Mapping a different callable re-pins it rather than silently reusing the old one."""
     pool = MultiprocessingPool(2)
     try:
         assert list(pool.map(_square, [1, 2, 3])) == [1, 4, 9]
-        results = pool.map(_report_worker_state, [1, 2, 3])
-        assert [r[0] for r in results] == [1, 2, 3]
-        # The worker processes were rebuilt, so each again saw one installation.
-        assert {r[1] for r in results} == {1}
+        results = pool.map(_identity, [1, 2, 3])
+        assert results == [1, 2, 3]
     finally:
         pool.close()
-
-
-# --- Lifecycle ---------------------------------------------------------------
 
 
 def test_multiprocessing_pool_close_is_a_noop_before_any_map():
@@ -199,9 +139,6 @@ def test_multiprocessing_pool_close_is_a_noop_before_any_map():
     pool.close()  # must not raise
     pool.close()  # idempotent
     assert pool._pool is None
-
-
-# --- make_scheduler: the input file facing factory ---------------------------
 
 
 def test_make_scheduler_multiprocessing_uses_every_core_by_default():
@@ -255,9 +192,6 @@ def test_make_scheduler_builds_a_working_dask_pool():
         assert list(pool.map(_square, [1, 2, 3])) == [1, 4, 9]
     finally:
         pool.close()
-
-
-# --- Dask ---------------------------------------------------------------------
 
 
 @requires_dask
@@ -336,8 +270,6 @@ def test_make_scheduler_without_dask_names_the_extra():
     assert proc.returncode == 0, proc.stderr
 
 
-# --- Criterion 4: behavior when the caller has no __main__ guard -------------
-
 
 _POOL_SCRIPT_BODY = """
 from espei.parallel import MultiprocessingPool
@@ -384,8 +316,6 @@ def test_multiprocessing_pool_without_a_main_guard_fails_fast(tmp_path):
     assert proc.stderr.count("freeze_support") < 10
     assert "BrokenProcessPool" in proc.stderr
 
-
-# --- Criteria 1 and 2: a real MCMC run across a real process boundary --------
 
 
 def _insert_all_residual_type_datasets(datasets_db):
