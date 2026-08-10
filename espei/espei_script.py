@@ -173,7 +173,6 @@ def run_espei(run_settings):
             raise OSError('Probfile "%s" exists and would be overwritten by a new run. Use the ``output.probfile`` setting to set a different name.', probfile)
 
         # scheduler setup
-        # TODO: make dask-scheduler-verbosity a YAML input so that users can debug. Should have the same log levels as verbosity
         client = make_scheduler(mcmc_settings, log_verbosity=log_verbosity, log_filename=log_filename)
 
         # get a Database
