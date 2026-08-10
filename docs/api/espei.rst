@@ -70,6 +70,14 @@ espei.logger module
    :show-inheritance:
    :undoc-members:
 
+espei.parallel module
+---------------------
+
+.. automodule:: espei.parallel
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 espei.paramselect module
 ------------------------
 

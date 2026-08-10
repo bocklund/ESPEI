@@ -9,7 +9,11 @@
 Advanced Schedulers
 ===================
 
-ESPEI uses dask-distributed for parallelization and provides an easy way to deploy clusters locally via TCP with the ``mcmc.scheduler: dask`` setting.
+By default, ESPEI parallelizes MCMC over the cores of a single machine using the Python standard library (the ``mcmc.scheduler: multiprocessing`` setting).
+The schedulers described on this page instead use dask-distributed, which is not installed with ESPEI.
+Install it first with ``pip install "espei[dask]"`` (or ``conda install -c conda-forge distributed``).
+
+With dask-distributed installed, the ``mcmc.scheduler: dask`` setting deploys a cluster locally via TCP.
 
 Sometimes ESPEI's dask scheduling options are not sufficiently flexible for different environments.
 
@@ -39,6 +43,12 @@ The dask-mpi package (version 2.0.0 or greater) must be installed before you can
 .. code-block:: bash
 
     conda install -c conda-forge --yes "dask-mpi>=2"
+
+With pip, dask-mpi and mpi4py are installed by ESPEI's ``mpi`` extra:
+
+.. code-block:: bash
+
+    pip install -U "espei[dask,mpi]"
 
 Note that you may also need a particular MPI implementation, conda-forge provides packages for OpenMPI or MPICH. You can pick a particular one by installing dask-mpi using either:
 

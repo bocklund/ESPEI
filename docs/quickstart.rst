@@ -123,7 +123,9 @@ properties calculated from your database.
 Q: Can I run ESPEI on a supercomputer supporting MPI?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A: Yes! ESPEI has MPI support. See the :ref:`MPI` page for more details.
+A: Yes. MPI is reached through dask-distributed: install ``espei[dask,mpi]``,
+start a scheduler with ``dask-mpi``, and set ``mcmc.scheduler`` to the scheduler
+file it writes. See the :ref:`MPI` page for more details.
 
 Q: How is the log probability reported by ESPEI calculated?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

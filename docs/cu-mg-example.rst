@@ -233,10 +233,11 @@ the following structure
 
 ESPEI defaults to run 1000 iterations and depends on calculating equilibrium in
 pycalphad several times for each iteration and the optimization is
-compute-bound. Fortunately, MCMC optimzations are embarrasingly parallel and
-ESPEI allows for parallelization using `dask <http://dask.pydata.org/>`_ or with
-MPI using `mpi4py <http://mpi4py.scipy.org/>`_ (single-node only at the time of
-writing - we are working on it).
+compute-bound. Fortunately, MCMC optimizations are embarrassingly parallel, and
+ESPEI runs them by default across all of the cores of the machine it is running
+on. Other schedulers, including `dask <https://www.dask.org/>`_ and MPI through
+`dask-mpi <https://mpi.dask.org/>`_, can be selected with the
+``mcmc.scheduler`` setting; see :ref:`Writing input files` and :ref:`MPI`.
 
 Note that you may also see messages about convergence failures or about
 droppping conditions. These refer to failures to calculate the log-probability

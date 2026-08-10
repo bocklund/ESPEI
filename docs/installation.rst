@@ -12,6 +12,20 @@ To install ESPEI from PyPI using pip:
    pip install -U pip
    pip install -U espei
 
+This installs everything ESPEI needs, including to run MCMC in parallel across
+the available cores with the default ``multiprocessing`` scheduler.
+
+``dask`` and ``distributed`` are not installed. They are only needed for the
+``dask`` scheduler and for dask scheduler files (see :ref:`MPI`), and are
+installed by the ``dask`` extra:
+
+.. code-block:: bash
+
+   pip install -U "espei[dask]"
+
+The ``dask`` extra installs ``distributed``, which requires dask core. The dask
+dashboard additionally requires ``bokeh``.
+
 A recommended best practice is to install Python packages into a virtual environment.
 To create an environment and install ESPEI on Linux and macOS/OSX:
 
@@ -42,6 +56,13 @@ ESPEI can be installed with the conda package manager by:
 .. code-block:: bash
 
     conda install -c conda-forge espei
+
+To use the ``dask`` scheduler or a dask scheduler file, install ``distributed``
+alongside ESPEI:
+
+.. code-block:: bash
+
+    conda install -c conda-forge espei distributed
 
 
 .. _installing-development-versions:
