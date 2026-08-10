@@ -1,0 +1,282 @@
+"""
+Tests for espei.parallel, ESPEI's parallelization backends.
+
+The tests here are also the go/no-go criteria for shipping a standard library
+``multiprocessing`` pool as ESPEI's default scheduler:
+
+1. The full residual context transmits and evaluates correctly under the
+   ``spawn`` start method, not just ``fork``.
+2. A short real MCMC run produces results identical to serial for all four
+   residual types.
+3. ``initializer=``-based pinning works: the context is transmitted once per
+   worker, not once per call.
+4. A caller lacking a ``__main__`` guard fails rather than respawning forever.
+5. Sane behavior on all CI platforms.
+"""
+
+import os
+import subprocess
+import sys
+import time
+
+import numpy as np
+import pytest
+from pycalphad import Database
+
+from espei.optimizers.opt_mcmc import EmceeOptimizer
+from espei.parallel import MultiprocessingPool
+
+from .fixtures import datasets_db
+from .testing_data import (
+    CU_MG_TDB,
+    CU_MG_DATASET_ZPF_ZERO_ERROR,
+    CU_MG_EXP_ACTIVITY,
+    CU_MG_CPM_MIX_X_HCP_A3,
+    CU_MG_SM_MIX_T_X_FCC_A1,
+    CU_MG_EQ_HMR_LIQUID,
+)
+
+
+class SerialPool:
+    """The trivial reference pool: builtin ``map``, no parallelism.
+
+    ESPEI spells this as ``scheduler: null`` (i.e. ``None``, letting ``emcee``
+    fall back to builtin ``map``). It participates in the conformance tests as
+    the definition of correct behavior.
+    """
+
+    def map(self, f, iterable):
+        return list(map(f, iterable))
+
+    def close(self):
+        pass
+
+
+def _serial_pool():
+    return SerialPool()
+
+
+def _multiprocessing_pool():
+    return MultiprocessingPool(2)
+
+
+# Parameterization shared by every conformance test. DaskPool joins this list
+# when it exists.
+POOL_FACTORIES = [
+    pytest.param(_serial_pool, id="serial"),
+    pytest.param(_multiprocessing_pool, id="multiprocessing"),
+]
+
+
+@pytest.fixture
+def pool(request):
+    """Yield a pool built by the requested factory and close it afterwards."""
+    pl = request.param()
+    try:
+        yield pl
+    finally:
+        pl.close()
+
+
+# Module-level (picklable by reference) callables for the conformance tests.
+
+def _square(x):
+    return x * x
+
+
+def _staggered_square(x):
+    """Square ``x``, taking longer for smaller ``x``.
+
+    Items therefore finish out of order, so a ``map`` that returned completion
+    order rather than input order would fail the ordering assertion.
+    """
+    time.sleep(0.05 * (10 - x))
+    return x * x
+
+
+def _report_worker_state(x):
+    """Report the mapped value alongside this process's pinning state.
+
+    Reads ``espei.parallel._INSTALL_COUNT`` *inside the worker*, which counts how
+    many times the mapped callable has been shipped to this process.
+    """
+    import espei.parallel
+    return (x, espei.parallel._INSTALL_COUNT, os.getpid())
+
+
+# --- Conformance: the one-method pool contract -------------------------------
+
+
+@pytest.mark.parametrize("pool", POOL_FACTORIES, indirect=True)
+def test_pool_map_returns_materialized_results_in_input_order(pool):
+    """pool.map must block and return concrete results in the order of the input."""
+    values = list(range(10))
+    result = pool.map(_staggered_square, values)
+    # Blocking: the return value is already a concrete sequence, not futures or
+    # a lazy iterator. Indexing/len must work without any further waiting.
+    assert len(result) == len(values)
+    # Order-preserving, despite the staggered runtimes.
+    assert list(result) == [_square(x) for x in values]
+
+
+@pytest.mark.parametrize("pool", POOL_FACTORIES, indirect=True)
+def test_pool_map_is_reusable_across_calls(pool):
+    """Successive map calls on the same pool must each return correct results."""
+    for values in ([0, 1, 2, 3], [4, 5], [6, 7, 8, 9, 10]):
+        assert list(pool.map(_square, values)) == [_square(x) for x in values]
+
+
+@pytest.mark.parametrize("pool", POOL_FACTORIES, indirect=True)
+def test_pool_map_handles_an_empty_iterable(pool):
+    assert list(pool.map(_square, [])) == []
+
+
+# --- Criterion 3: the context crosses the boundary once per worker -----------
+
+
+def test_multiprocessing_pool_pins_the_mapped_callable_once_per_worker():
+    """The mapped callable is installed once per worker, not once per map call."""
+    pool = MultiprocessingPool(2)
+    try:
+        install_counts = set()
+        pids = set()
+        for _ in range(4):
+            for _value, install_count, pid in pool.map(_report_worker_state, range(6)):
+                install_counts.add(install_count)
+                pids.add(pid)
+        # Every result, on every call, saw exactly one installation: the callable
+        # crossed the process boundary once per worker rather than 4 * 6 times.
+        assert install_counts == {1}
+        # And the work really was spread over the worker processes.
+        assert len(pids) == 2
+        assert os.getpid() not in pids
+    finally:
+        pool.close()
+
+
+def test_multiprocessing_pool_repins_when_the_mapped_callable_changes():
+    """Mapping a different callable re-pins it rather than silently reusing the old one."""
+    pool = MultiprocessingPool(2)
+    try:
+        assert list(pool.map(_square, [1, 2, 3])) == [1, 4, 9]
+        results = pool.map(_report_worker_state, [1, 2, 3])
+        assert [r[0] for r in results] == [1, 2, 3]
+        # The worker processes were rebuilt, so each again saw one installation.
+        assert {r[1] for r in results} == {1}
+    finally:
+        pool.close()
+
+
+# --- Lifecycle ---------------------------------------------------------------
+
+
+def test_multiprocessing_pool_close_is_a_noop_before_any_map():
+    """Workers are created lazily, so close() on an unused pool must not fail."""
+    pool = MultiprocessingPool(2)
+    assert pool._pool is None
+    pool.close()  # must not raise
+    pool.close()  # idempotent
+    assert pool._pool is None
+
+
+# --- Criterion 4: behavior when the caller has no __main__ guard -------------
+
+
+_POOL_SCRIPT_BODY = """
+from espei.parallel import MultiprocessingPool
+
+def square(x):
+    return x * x
+
+def run():
+    pool = MultiprocessingPool(2)
+    try:
+        print("RESULT", pool.map(square, range(4)))
+    finally:
+        pool.close()
+"""
+
+UNGUARDED_SCRIPT = _POOL_SCRIPT_BODY + "\nrun()\n"
+GUARDED_SCRIPT = _POOL_SCRIPT_BODY + "\nif __name__ == '__main__':\n    run()\n"
+
+
+def _run_script(tmp_path, name, source):
+    script = tmp_path / name
+    script.write_text(source)
+    # The timeout is part of the assertion: a multiprocessing.Pool replaces
+    # workers that die, so the unguarded case would not fail, it would run
+    # forever.
+    return subprocess.run(
+        [sys.executable, str(script)],
+        capture_output=True, text=True, timeout=300,
+    )
+
+
+def test_multiprocessing_pool_works_from_a_script_with_a_main_guard(tmp_path):
+    proc = _run_script(tmp_path, "guarded.py", GUARDED_SCRIPT)
+    assert proc.returncode == 0, proc.stderr
+    assert "RESULT [0, 1, 4, 9]" in proc.stdout
+
+
+def test_multiprocessing_pool_without_a_main_guard_fails_fast(tmp_path):
+    """A missing __main__ guard must terminate with an error, not respawn forever."""
+    proc = _run_script(tmp_path, "unguarded.py", UNGUARDED_SCRIPT)
+    assert proc.returncode != 0
+    # ProcessPoolExecutor reports the dead worker once and gives up. Under a
+    # multiprocessing.Pool this repeats until the process is killed.
+    assert proc.stderr.count("freeze_support") < 10
+    assert "BrokenProcessPool" in proc.stderr
+
+
+# --- Criteria 1 and 2: a real MCMC run across a real process boundary --------
+
+
+def _insert_all_residual_type_datasets(datasets_db):
+    """Insert one dataset for each of the four registered residual types."""
+    datasets_db.insert(CU_MG_DATASET_ZPF_ZERO_ERROR)  # ZPFResidual
+    datasets_db.insert(CU_MG_EXP_ACTIVITY)  # ActivityResidual
+    datasets_db.insert(CU_MG_CPM_MIX_X_HCP_A3)  # FixedConfigurationPropertyResidual
+    datasets_db.insert(CU_MG_SM_MIX_T_X_FCC_A1)  # FixedConfigurationPropertyResidual
+    datasets_db.insert(CU_MG_EQ_HMR_LIQUID)  # EquilibriumPropertyResidual
+
+
+def test_multiprocessing_pool_mcmc_matches_serial(datasets_db):
+    """An MCMC run through a MultiprocessingPool reproduces the serial run exactly.
+
+    Covers all four residual types in a single run, so the whole context (deep
+    copied Database, PickleableTinyDB datasets, eagerly built pycalphad
+    PhaseRecordFactory objects wrapping symengine-compiled functions) crosses a
+    real process boundary with no ESPEI-side serialization shims.
+    """
+    _insert_all_residual_type_datasets(datasets_db)
+    symbols = ["VV0000", "VV0001"]
+    fit_kwargs = dict(iterations=1, chains_per_parameter=2, deterministic=True)
+
+    # A fresh Database for each optimizer: pycalphad's Database.__deepcopy__
+    # shares the ``symbols`` dict, so ``fit`` writes its result back into the
+    # Database it was given.
+    serial_opt = EmceeOptimizer(Database(CU_MG_TDB))
+    serial_opt.fit(symbols, datasets_db, **fit_kwargs)
+
+    pool = MultiprocessingPool(2)
+    try:
+        parallel_opt = EmceeOptimizer(Database(CU_MG_TDB), scheduler=pool)
+        parallel_opt.fit(symbols, datasets_db, **fit_kwargs)
+    finally:
+        pool.close()
+
+    # The sampling decisions are identical: same proposals, same accept/reject.
+    assert parallel_opt.sampler.chain.shape == serial_opt.sampler.chain.shape
+    assert np.all(parallel_opt.sampler.chain == serial_opt.sampler.chain)
+    # The log probabilities agree to floating point tolerance rather than
+    # bit-for-bit. ActivityResidual and EquilibriumPropertyResidual run a
+    # pycalphad equilibrium solve, which is not bit-reproducible even between
+    # two runs in the same process (~1e-16 relative); the residual types that do
+    # not solve an equilibrium do agree bit-for-bit across the process boundary.
+    assert np.allclose(
+        parallel_opt.sampler.lnprobability, serial_opt.sampler.lnprobability,
+        rtol=1e-10, atol=0.0,
+    )
+    # Real numbers, not the -inf that a silently broken context would produce.
+    assert np.all(np.isfinite(serial_opt.sampler.lnprobability))
+    assert np.all(np.isfinite(parallel_opt.sampler.lnprobability))
