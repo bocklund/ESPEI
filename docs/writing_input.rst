@@ -347,8 +347,8 @@ cores
 :type: int
 :min: 1
 
-How many cores from available cores to use during parallelization with the ``multiprocessing`` or ``dask`` schedulers.
-If the chosen number of cores is larger than available, then this value is ignored and espei defaults to using the number available.
+Number of cores to use during parallelization with the ``multiprocessing`` or ``dask`` schedulers.
+If the chosen number of cores is larger than available, then this value is ignored and ESPEI defaults to using the number available.
 
 Cores does not take effect for the ``null`` scheduler or for a JSON scheduler file, which uses the resources of the scheduler it connects to.
 
