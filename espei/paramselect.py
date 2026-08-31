@@ -40,6 +40,7 @@ from espei.sublattice_tools import generate_symmetric_group, generate_interactio
     tuplify, recursive_tuplify, interaction_test, endmembers_from_interaction, generate_endmembers
 from espei.utils import PickleableTinyDB, sigfigs, extract_aliases
 from espei.parameter_selection.fitting_descriptions import gibbs_energy_fitting_description
+from espei.parameter_selection.partitioned_ordering import fit_ordering_parameters
 
 _log = logging.getLogger(__name__)
 
@@ -261,9 +262,14 @@ def fit_parameters(dbf, comps, phase_name, configuration, symmetry, datasets, ri
     fixed_model = None  # Profiling suggests we delay instantiation
     fixed_portions = [0]
     parameters = {}
+    # Ordering steps for partitioned (order/disorder) models fit all ordered
+    # configurations of a phase simultaneously and are dispatched at the phase
+    # level (see espei.parameter_selection.partitioned_ordering), so they are
+    # excluded from the configuration-by-configuration fitting here.
+    fitting_steps = [step for step in fitting_description.fitting_steps if not step.is_ordering_step]
     # non-idiomatic loop so we can look ahead and see if we should write parameters or not
-    for i in range(len(fitting_description.fitting_steps)):
-        fitting_step = fitting_description.fitting_steps[i]
+    for i in range(len(fitting_steps)):
+        fitting_step = fitting_steps[i]
         _log.debug('Fitting step: %s', fitting_step)
         if _param_present_in_database(dbf, phase_name, configuration, fitting_step.parameter_name):
             _log.trace('Parameter %s already in the database for configuration %s. Skipping.', fitting_step.parameter_name, configuration)
@@ -310,7 +316,7 @@ def fit_parameters(dbf, comps, phase_name, configuration, symmetry, datasets, ri
         # pycalphad, but not other software so we preserve the legacy fixed
         # portions behavior to allow the values to accumulate. There may be
         # other alternatives to explore.
-        if (i == len(fitting_description.fitting_steps) - 1) or (fitting_step.parameter_name != fitting_description.fitting_steps[i+1].parameter_name):
+        if (i == len(fitting_steps) - 1) or (fitting_step.parameter_name != fitting_steps[i+1].parameter_name):
             # we're either on the last fitting step or the next step is a
             # different parameter type, so we insert and reset the state.
             parameters = OrderedDict([(ky, vl) for ky, vl in sorted(parameters.items(), key=_stable_sort_key)])
@@ -356,6 +362,17 @@ def phase_fit(dbf, phase_name, symmetry, datasets, refdata, ridge_alpha, aicc_pe
     if not hasattr(dbf, 'varcounter'):
         dbf.varcounter = 0
     phase_obj = dbf.phases[phase_name]
+    if phase_obj.model_hints.get("ordered_phase") == phase_name and phase_obj.model_hints.get("disordered_phase") in dbf.phases:
+        # This phase is the ordered phase of a partitioned (order/disorder)
+        # model. Its endmember Gibbs energy parameters are the ordering
+        # energies, which must be fit simultaneously at the phase level (the
+        # disordered phase must already be fit). Interaction parameters of the
+        # ordered phase are not fit.
+        _log.info('FITTING: %s (partitioned ordering energies)', phase_name)
+        fit_ordering_parameters(dbf, phase_name, datasets, symmetry=symmetry, fitting_description=fitting_description)
+        if hasattr(dbf, 'varcounter'):
+            del dbf.varcounter
+        return
     # TODO: assumed pure elements - add proper support for Species objects
     subl_model = [sorted([sp.name for sp in subl]) for subl in phase_obj.constituents]
     site_ratios = phase_obj.sublattices
@@ -462,8 +479,17 @@ def generate_parameters(phase_models, datasets, ref_state, excess_model, ridge_a
     refdata = getattr(espei.refdata, ref_state)
     aliases = extract_aliases(phase_models)
     dbf = initialize_database(phase_models, ref_state, dbf)
-    # Fit phases in alphabetic order so the VV#### counter is constistent between runs
-    for phase_name, phase_data in sorted(phase_models['phases'].items(), key=operator.itemgetter(0)):
+    def _phase_fit_sort_key(item):
+        # Fit phases in alphabetic order so the VV#### counter is constistent
+        # between runs, except that the ordered phases of partitioned
+        # (order/disorder) models must be fit after all other phases because
+        # fitting their ordering energies requires the corresponding
+        # disordered phases to be fit first.
+        phase_name = item[0]
+        phase_obj = dbf.phases.get(phase_name)
+        is_partitioned_ordered_phase = phase_obj is not None and phase_obj.model_hints.get("ordered_phase") == phase_name
+        return (is_partitioned_ordered_phase, phase_name)
+    for phase_name, phase_data in sorted(phase_models['phases'].items(), key=_phase_fit_sort_key):
         if phase_name in dbf.phases:
             symmetry = phase_data.get('equivalent_sublattices', None)
             # Filter datasets by thermochemical data for this phase

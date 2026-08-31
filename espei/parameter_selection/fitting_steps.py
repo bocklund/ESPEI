@@ -17,6 +17,7 @@ __all__ = [
     "StepCPM",
     "StepV0",
     "StepLogVA",
+    "StepOrderingHM",
 ]
 
 
@@ -25,6 +26,12 @@ class FittingStep():
     data_types_read: str
     features: [symengine.Expr]
     supported_reference_states: [str]
+    # Ordering steps fit the ordering energies of partitioned (order/disorder)
+    # models. They are fit once per phase, for all ordered configurations
+    # simultaneously, instead of once per candidate configuration, so they are
+    # skipped by the configuration-by-configuration parameter selection in
+    # `espei.paramselect.fit_parameters`.
+    is_ordering_step: bool = False
 
     @classmethod
     def transform_feature(cls, expr: symengine.Expr, model: Optional[Model] = None) -> symengine.Expr:
@@ -269,6 +276,32 @@ class StepHM(FittingStep):
         data_qtys = [fixed_model.symbol_replace(symengine.S(i).xreplace(sf), fixed_model._symbols).evalf() for i, sf in zip(data_qtys, site_fractions)]
         data_qtys = np.asarray(data_qtys, dtype=np.float64)
         return data_qtys
+
+
+class StepOrderingHM(StepHM):
+    """
+    Fitting step for the ordering energies of partitioned (order/disorder)
+    models from enthalpy data of ordered configurations.
+
+    The ordered phase's endmember Gibbs energy parameters are the ordering
+    energies, which contribute :math:`\\Delta G^\\mathrm{ord}(y) = G^\\mathrm{ord}(y) - G^\\mathrm{ord}(y = x)`
+    to the energy of the phase. Since :math:`G^\\mathrm{ord}(y = x)` couples
+    all ordering parameters at every ordered configuration, the parameters
+    cannot be fit one configuration at a time and this step is dispatched at
+    the phase level (see
+    ``espei.parameter_selection.partitioned_ordering.fit_ordering_parameters``)
+    rather than through the configuration-by-configuration model selection.
+
+    Only enthalpy data are supported because the ideal mixing contribution to
+    the ordering energy, :math:`-T [S^\\mathrm{id}(y) - S^\\mathrm{id}(y = x)]`,
+    is independent of the parameters and does not contribute to the enthalpy,
+    keeping the fit linear in the parameters.
+    """
+    parameter_name: str = "G"
+    data_types_read: str = "HM"
+    supported_reference_states: [str] = ["_MIX", "_FORM"]
+    features: [symengine.Expr] = [symengine.S.One]
+    is_ordering_step: bool = True
 
 
 class StepSM(StepHM):
