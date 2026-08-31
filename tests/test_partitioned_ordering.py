@@ -119,9 +119,19 @@ def make_bcc_4sl_dbf():
 def ordered_phase_enthalpy(dbf, comps, phase_name, occupancies, T=298.15, P=101325.0):
     """Return HM (J/mol-atom) of the phase at the site fractions given by
     occupancies, with the pure element reference (GHSER) set to zero, i.e. in
-    the same reference state as HM_FORM data."""
-    ghser_syms = {"GHSER" + (c.upper() * 2)[:2]: 0 for c in comps}
-    mod = Model(dbf, comps, phase_name, parameters=ghser_syms)
+    the same reference state as HM_FORM data.
+
+    The GHSER symbols are zeroed in a copy of the Database instead of by the
+    ``parameters`` argument of the Model because pycalphad does not propagate
+    ``parameters`` to the disordered model built internally for partitioned
+    phases."""
+    import copy
+    dbf = copy.deepcopy(dbf)
+    for c in comps:
+        ghser_name = "GHSER" + (c.upper() * 2)[:2]
+        if ghser_name in dbf.symbols:
+            dbf.symbols[ghser_name] = 0
+    mod = Model(dbf, comps, phase_name)
     subs_dict = {v.T: T, v.P: P}
     constituents = [sorted(sp.name for sp in subl) for subl in mod.constituents]
     for subl_idx, subl_occupancies in enumerate(occupancies):
@@ -246,6 +256,29 @@ def test_ordered_endmember_configurations_carry_interstitial_sublattice():
     assert sorted(configs) == sorted(expected)
 
 
+def ordering_enthalpy(dbf, comps, phase_name, occupancies, T=298.15, P=101325.0):
+    """Return the model ordering enthalpy (J/mol-atom) at the given ordered
+    occupancies: the difference between the ordered phase and the disordered
+    phase evaluated at the equivalent disordered composition, both from
+    absolute (unmodified reference) models, so the result is independent of
+    the pure element reference."""
+    disordered_phase_name = dbf.phases[phase_name].model_hints["disordered_phase"]
+    ordered_mod = Model(dbf, comps, phase_name)
+    disordered_mod = Model(dbf, comps, disordered_phase_name)
+    subs_ord = {v.T: T, v.P: P}
+    constituents = [sorted(sp.name for sp in subl) for subl in ordered_mod.constituents]
+    for subl_idx, subl_occupancies in enumerate(occupancies):
+        if not isinstance(subl_occupancies, (list, tuple)):
+            subl_occupancies = [subl_occupancies]
+        for sp_name, occupancy in zip(constituents[subl_idx], subl_occupancies):
+            subs_ord[v.Y(phase_name, subl_idx, sp_name)] = occupancy
+    # disordered site fractions are the quasi mole fractions of the ordered configuration
+    subs_dis = {v.T: T, v.P: P}
+    for y in disordered_mod.site_fractions:
+        subs_dis[y] = float(ordered_mod.moles(y.species).subs(subs_ord))
+    return float(ordered_mod.HM.subs(subs_ord)) - float(disordered_mod.HM.subs(subs_dis))
+
+
 # ---------------------------------------------------------------------------
 # Fitting
 # ---------------------------------------------------------------------------
@@ -268,6 +301,21 @@ def test_fit_ordering_parameters_bcc_4sl_exactly_reproduces_data(datasets_db):
     # the fit is exactly determined, so the model must reproduce the data
     for occupancies, expected in zip(BCC_4SL_ORDERED_OCCUPANCIES, input_values):
         assert np.isclose(ordered_phase_enthalpy(dbf, ["MO", "NB"], "BCC_4SL", occupancies), expected, atol=1.0)
+    # the fitted ordering enthalpy must equal the data minus the disordered
+    # formation enthalpy, computed from reference-independent (absolute)
+    # models. This guards against the pure element reference (GHSER = 0) not
+    # being applied to the disordered part of the partitioned model, which
+    # matters whenever H(GHSER) != 0 (e.g. magnetic elements at 298.15 K,
+    # since the GHSER functions exclude the magnetic enthalpy).
+    ghser_zero = {"GHSERMO": 0, "GHSERNB": 0}
+    disordered_mod = Model(dbf, ["MO", "NB"], "BCC_A2", parameters=ghser_zero)
+    for occupancies, expected in zip(BCC_4SL_ORDERED_OCCUPANCIES, input_values):
+        x_nb = np.mean([subl[1] for subl in occupancies])
+        h_dis = float(disordered_mod.HM.subs({
+            v.Y("BCC_A2", 0, "MO"): 1 - x_nb, v.Y("BCC_A2", 0, "NB"): x_nb,
+            v.T: 298.15, v.P: 101325.0,
+        }))
+        assert np.isclose(ordering_enthalpy(dbf, ["MO", "NB"], "BCC_4SL", occupancies), expected - h_dis, atol=1.0)
     # disordered phase parameters are untouched
     assert len(dbf._parameters.search(where("phase_name") == "BCC_A2")) == 4
 
@@ -291,6 +339,10 @@ def test_fit_ordering_parameters_2sl_b2_exactly_reproduces_data(datasets_db):
     vv_symbols = sorted(name for name in dbf.symbols if name.startswith("VV"))
     assert len(vv_symbols) == 1
     assert np.isclose(ordered_phase_enthalpy(dbf, ["MO", "NB"], "BCC_B2", occupancies[0]), input_values[0], atol=1.0)
+    # reference-independent consistency with the disordered phase (see the 4SL test)
+    disordered_mod = Model(dbf, ["MO", "NB"], "BCC_A2", parameters={"GHSERMO": 0, "GHSERNB": 0})
+    h_dis = float(disordered_mod.HM.subs({v.Y("BCC_A2", 0, "MO"): 0.5, v.Y("BCC_A2", 0, "NB"): 0.5, v.T: 298.15, v.P: 101325.0}))
+    assert np.isclose(ordering_enthalpy(dbf, ["MO", "NB"], "BCC_B2", occupancies[0]), input_values[0] - h_dis, atol=1.0)
 
 
 def test_fit_ordering_parameters_with_interstitial_sublattice(datasets_db):

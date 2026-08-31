@@ -252,7 +252,26 @@ def _fit_ordering_parameters_subsystem(dbf, phase_name, components, symmetry, da
         # The model must be built before the ordering parameters are added so
         # that the atomic ordering contribution contains only parameters that
         # are already fit.
-        fixed_model = model_class(dbf, comps, phase_name, parameters={'GHSER'+(c.upper()*2)[:2]: 0 for c in comps})
+        # The pure element reference (GHSER) symbols must be set to zero for
+        # _FORM data, but pycalphad does not propagate the `parameters`
+        # argument to the disordered model that it builds internally for
+        # partitioned phases, so passing `parameters={'GHSERXX': 0}` alone
+        # would leave the disordered contributions in the absolute reference.
+        # This matters whenever H(GHSER) != 0, e.g. for magnetic elements at
+        # 298.15 K (the GHSER functions exclude the magnetic enthalpy) or for
+        # data at other temperatures. Temporarily zero the GHSER symbols in
+        # the Database so that they are zeroed in the disordered model too.
+        ghser_symbols = {'GHSER'+(c.upper()*2)[:2]: 0 for c in comps}
+        saved_dbf_symbols = {name: dbf.symbols[name] for name in ghser_symbols.keys() if name in dbf.symbols}
+        dbf.symbols.update(ghser_symbols)
+        try:
+            fixed_model = model_class(dbf, comps, phase_name, parameters=ghser_symbols)
+        finally:
+            for name in ghser_symbols.keys():
+                if name in saved_dbf_symbols:
+                    dbf.symbols[name] = saved_dbf_symbols[name]
+                else:
+                    del dbf.symbols[name]
         calculate_dict = get_prop_samples(desired_data, config_tup)
         sample_condition_dicts = get_sample_condition_dicts(calculate_dict, config_tup, phase_name)
         response_vector = fitting_step.get_response_vector(fixed_model, [0], desired_data, sample_condition_dicts)
