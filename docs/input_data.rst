@@ -129,7 +129,13 @@ Two examples follow. The first dataset has some data for the formation heat capa
    See the second example in this section for such an example.
 
 * The ``conditions`` describe temperatures (``T``) and pressures (``P``) as either scalars or one-dimensional lists.
-* The type of quantity is expressed using the ``output`` key. This can in principle be any thermodynamic quantity, but currently only ``CPM*``, ``SM*``, and ``HM*`` (where ``*`` is either nothing, ``_MIX`` or ``_FORM``) are supported. Support for changing reference states is planned but not yet implemented, so all thermodynamic quantities must be formation quantities (e.g. ``HM_FORM`` or ``HM_MIX``, etc.). This is tracked by :issue:`85` on GitHub.
+* The type of quantity is expressed using the ``output`` key. This can in principle be any thermodynamic quantity, but currently only ``GM*``, ``CPM*``, ``SM*``, and ``HM*`` are supported, where ``*`` is the reference state:
+
+  * ``_FORM``: formation quantities, relative to the stable element reference (SER) defined by the ``GHSER`` functions of the unary reference data, e.g. ``HM_FORM``.
+  * ``_MIX``: mixing quantities, relative to the endmembers of the phase, e.g. ``HM_MIX``.
+  * nothing: absolute quantities, e.g. ``CPM`` for measured heat capacities or ``SM`` for third law entropies. Absolute ``HM`` and ``GM`` follow the SER convention, i.e. the enthalpy of the pure elements in their stable reference state is zero at 298.15 K.
+
+  ``GM*`` data are only used for parameter generation by the joint Gibbs energy fitting description (see ``fitting_description`` in :ref:`Writing input files`).
 * ``values`` is a 3-dimensional array where each value is the ``output`` for a specific condition of pressure, temperature, and sublattice configurations from outside to inside. Alternatively, the size of the array must be ``(len(P), len(T), len(subl_config))``. In the example below, the shape of the ``values`` array is (1, 12, 1) as there is one pressure scalar, one sublattice configuration, and 12 temperatures.
 * There is also a key, ``excluded_model_contributions``, which will make those contributions of pycalphad's ``Model`` not be fit to when doing parameter selection or MCMC. This is useful for cases where the type of data used does not include some specific ``Model`` contributions that parameters may already exist for. For example, DFT formation energies do not include ideal mixing or (Calphad-type) magnetic model contributions, but formation energies from experiments would include these contributions so experimental formation energies should not be excluded.
 
