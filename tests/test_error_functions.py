@@ -14,6 +14,7 @@ from tinydb import where
 
 from pycalphad import Database
 
+from espei.datasets import DatasetWarning
 from espei.paramselect import generate_parameters
 from espei.error_functions import *
 from espei.error_functions.activity_error import ActivityResidual
@@ -479,7 +480,7 @@ def test_zpf_error_equilibrium_failure(datasets_db):
 
 
 def test_zpf_error_works_for_stoichiometric_cmpd_tielines(datasets_db):
-    """A stochimetric compound with approximate composition can be in the datasets and work"""
+    """A phase region with only the composition of a stoichiometric compound known has zero driving forces, with a warning."""
     datasets_db.insert(CU_MG_DATASET_ZPF_STOICH_COMPOUND)
 
     dbf = Database(CU_MG_TDB)
@@ -489,9 +490,34 @@ def test_zpf_error_works_for_stoichiometric_cmpd_tielines(datasets_db):
     # ZPF weight = 1 kJ and there are two points in the tieline
     zero_error_probability = 2 * scipy.stats.norm(loc=0, scale=1000.0).logpdf(0.0)
 
-    zpf_data = get_zpf_data(dbf, comps, phases, datasets_db, {})
+    with pytest.warns(DatasetWarning, match=r"values\[0\] .* __HYPERPLANE__"):
+        zpf_data = get_zpf_data(dbf, comps, phases, datasets_db, {})
     likelihood = calculate_zpf_error(zpf_data)
     assert np.isclose(likelihood, zero_error_probability, rtol=1e-6)
+
+
+def test_zpf_driving_forces_of_stoichiometric_phase_compositions(datasets_db):
+    """Known compositions of a stoichiometric phase, e.g. rounded, give the driving forces of an unknown composition."""
+    liquid = ["LIQUID", ["MG"], [0.8504]]
+    datasets_db.insert({"components": ["CU", "MG"], "phases": ["CUMG2", "LIQUID"], "conditions": {"P": 101325, "T": 800}, "output": "ZPF", "reference": "testing",
+                        "values": [[["CUMG2", ["MG"], [0.667]], liquid], [["CUMG2", ["MG"], [None]], liquid]]})
+    dbf = Database(CU_MG_TDB)
+    zpf_data = get_zpf_data(dbf, ['CU', 'MG', 'VA'], ['CUMG2', 'LIQUID'], datasets_db, {})
+    driving_forces, _ = calculate_zpf_driving_forces(zpf_data)
+    assert np.all(np.isfinite(driving_forces[0]))
+    assert np.allclose(driving_forces[0][:2], driving_forces[0][2:])
+
+
+def test_zpf_driving_forces_of_phases_that_cannot_vary_their_composition_in_every_direction(datasets_db):
+    """Known compositions of a phase that cannot vary its composition in every direction are used as unknown, with a warning."""
+    # ALCU5Y, (AL,CU)5(Y)1, and LIQUID in equilibrium in the database, with ALCU5Y at X(Y) = 0.166667
+    datasets_db.insert({"components": ["AL", "CU", "Y"], "phases": ["ALCU5Y", "LIQUID"], "conditions": {"P": 101325, "T": 1150}, "output": "ZPF", "reference": "testing",
+                        "values": [[["ALCU5Y", ["AL", "Y"], [0.1216, 0.1667]], ["LIQUID", ["AL", "Y"], [0.0032, 0.3871]]]]})
+    dbf = Database(AL_CU_Y_LIQUID_ALCU5Y_TDB)
+    with pytest.warns(DatasetWarning, match="ALCU5Y are used as unknown"):
+        zpf_data = get_zpf_data(dbf, ['AL', 'CU', 'Y', 'VA'], sorted(dbf.phases), datasets_db, {})
+    driving_forces, _ = calculate_zpf_driving_forces(zpf_data)
+    assert np.allclose(driving_forces[0], [0.0, 0.0], atol=20)
 
 
 def test_zpf_driving_force_of_disordered_phase_compositions(datasets_db):

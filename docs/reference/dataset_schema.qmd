@@ -253,6 +253,10 @@ determined, but the phase composition of the other phase(s) in
 equilibrium are not. In these cases, phase compositions can be given as
 `null` and ESPEI will estimate the phase composition.
 
+Known compositions of stoichiometric compounds and other phases that
+can't vary their composition in every direction are used as `null`, see
+[Compound Compositions in ZPF Data](zpf_compound_compositions.qmd).
+
 ::: {.admonition .important}
 Important
 

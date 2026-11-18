@@ -15,6 +15,7 @@ composition conditions to calculate chemical potentials at.
 """
 
 import logging
+import warnings
 from dataclasses import dataclass
 from collections import OrderedDict
 from typing import Sequence, Dict, Any, Union, List, Tuple, Type, Optional
@@ -28,6 +29,7 @@ from pycalphad.codegen.phase_record_factory import PhaseRecordFactory
 from scipy.stats import norm
 import tinydb
 
+from espei.datasets import DatasetWarning
 from espei.phase_models import PhaseModelSpecification
 from espei.shadow_functions import calculate_, update_phase_record_parameters
 from espei.typing import SymbolName
@@ -35,6 +37,7 @@ from espei.utils import PickleableTinyDB, database_symbols_to_fit
 from .residual_base import ResidualFunction, residual_function_registry
 
 _log = logging.getLogger(__name__)
+_COMPOUND_COMPOSITIONS_URL = "https://espei.org/reference/zpf_compound_compositions.html"
 
 
 @dataclass
@@ -65,6 +68,13 @@ def _disordered_phase(dbf: Database, phase_name: str) -> Optional[str]:
     return None if hints.get('never_disorder') else hints.get('disordered_phase')
 
 
+def _composition_rank(phase_name: str, species: Sequence[v.Species], models: Dict[str, Model], phase_record_factory: PhaseRecordFactory, statevars: Dict[str, float]) -> int:
+    """Return the number of independent directions in which the phase can vary its composition, e.g. zero for a stoichiometric phase."""
+    X = calculate_(species, [phase_name], statevars, models, phase_record_factory).X
+    X = X.reshape(-1, X.shape[-1])
+    return int(np.linalg.matrix_rank(X - X.mean(axis=0), tol=1e-8))
+
+
 def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], datasets: PickleableTinyDB, parameters: Dict[str, float], model: Optional[Dict[str, Type[Model]]] = None):
     """
     Return the ZPF data used in the calculation of ZPF error
@@ -91,6 +101,11 @@ def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], dat
     ------
     ValueError
         If a phase composition is "disordered" for a phase without a disordered phase.
+
+    Warns
+    -----
+    DatasetWarning
+        If known compositions of phases with internal degrees of freedom are used as unknown, because the phases can't vary their composition in every direction, or if a phase region is left without a known composition to define the target hyperplane.
     """
     wks = Workspace(dbf, sorted(set(comps) | {'VA'}), phases, parameters=parameters)
     # Disordered phases, e.g. FCC_A1 of FCC_L12, are phases of the system even though pycalphad hides them with their ordered phase
@@ -100,6 +115,8 @@ def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], dat
                                    (tinydb.where('phases').test(lambda x: set(x).issubset(modeled_phases))))
 
     zpf_data = []  # 1:1 correspondence with each dataset
+    composition_ranks = {}  # of each phase in the composition space of the pure elements
+    estimated_phases = set()  # phases with internal degrees of freedom whose known compositions are used as unknown
     for data in desired_data:
         current_wks = wks.copy()
         data_comps = list(set(data['components']).union({'VA'}))
@@ -114,6 +131,7 @@ def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], dat
         models = instantiate_models(dbf, current_wks.components, sorted(model_phases), model=model, parameters=current_wks.parameters)
         phase_record_factory = PhaseRecordFactory(dbf, current_wks.components, current_wks.conditions, models, parameters=current_wks.parameters)
         phase_regions = []
+        unused_regions = []
         # Each phase_region is one set of phases in equilibrium (on a tie-line),
         # e.g. [["ALPHA", ["B"], [0.25]], ["BETA", ["B"], [0.5]]]
         for idx, phase_region in enumerate(all_regions):
@@ -124,11 +142,21 @@ def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], dat
             vertices = []
             hyperplane_vertices = []
             for phase_name, components, fractions, *flag in phase_region:
-                comp_conds = dict(zip(map(v.X, map(str.upper, components)), fractions))
                 if flag == ["disordered"]:
                     if _disordered_phase(dbf, phase_name) is None:
                         raise ValueError(f'{phase_name} is "disordered" in values[{idx}] of the ZPF dataset "{data.get("reference", "")}", but it has no disordered phase that it can disorder to')
                     phase_name = _disordered_phase(dbf, phase_name)
+                if phase_name.upper() != '__HYPERPLANE__' and None not in fractions:
+                    rank_key = (phase_name, *pure_elements)
+                    if rank_key not in composition_ranks:
+                        statevars = {str(sv): pot_conds[sv] for sv in sorted(pot_conds, key=str)}
+                        composition_ranks[rank_key] = _composition_rank(phase_name, current_wks.components, models, phase_record_factory, statevars)
+                    if composition_ranks[rank_key] < len(pure_elements) - 1:
+                        # Measured compositions are generally not ones the phase can take, and its chemical potentials are not determined
+                        fractions = [None] * len(fractions)
+                        if composition_ranks[rank_key] > 0:
+                            estimated_phases.add(phase_name)
+                comp_conds = dict(zip(map(v.X, map(str.upper, components)), fractions))
                 # Composition of the pure elements, with unknown mole fractions as NaN and the dependent element by mass balance (N=1)
                 composition = np.array([comp_conds.get(v.X(el)) for el in pure_elements], dtype=np.float64)
                 if np.isnan(composition).sum() == 1:
@@ -142,6 +170,8 @@ def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], dat
             if len(hyperplane_vertices) == 0:
                 # Define the hyperplane at the vertices of the ZPF points
                 hyperplane_vertices = vertices
+            if all(vtx.has_missing_comp_cond for vtx in hyperplane_vertices):
+                unused_regions.append(idx)
             region = PhaseRegion(hyperplane_vertices, vertices, pot_conds, current_wks.components, current_wks.phases, models)
             phase_regions.append(region)
 
@@ -153,6 +183,10 @@ def get_zpf_data(dbf: Database, comps: Sequence[str], phases: Sequence[str], dat
             'parameter_dict': parameters
         }
         zpf_data.append(data_dict)
+        if unused_regions:
+            warnings.warn(f'Phase regions values{unused_regions} of the ZPF dataset "{data.get("reference", "")}" have no known composition of a phase that can vary its composition in every direction to define the target hyperplane, so their driving forces are zero. Give a __HYPERPLANE__ composition to use them. See {_COMPOUND_COMPOSITIONS_URL}', DatasetWarning)
+    if estimated_phases:
+        warnings.warn(f'Known ZPF phase compositions of {", ".join(sorted(estimated_phases))} are used as unknown (null), because these phases cannot vary their composition in every direction. Their driving forces are estimated from all their compositions. See {_COMPOUND_COMPOSITIONS_URL}', DatasetWarning)
     return zpf_data
 
 
@@ -224,8 +258,8 @@ def driving_force_to_hyperplane(target_hyperplane_chempots: np.ndarray,
     update_phase_record_parameters(phase_record_factory, parameters)
     if vertex.has_missing_comp_cond:
         # We don't have the phase composition here, so we estimate the driving force.
-        # Can happen if one of the composition conditions is unknown or if the phase is
-        # stoichiometric and the user did not specify a valid phase composition.
+        # Can happen if one of the composition conditions is unknown or if the phase
+        # can't vary its composition in every direction.
         single_eqdata = calculate_(species, [current_phase], str_statevar_dict, models, phase_record_factory, pdens=50)
         df = np.multiply(target_hyperplane_chempots, single_eqdata.X).sum(axis=-1) - single_eqdata.GM
         driving_force = float(df.max())
