@@ -49,9 +49,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-55617497126496852ff9f5a59253c640.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-f67d6d0c9e52dc93d369a7ba4ec07921.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-55617497126496852ff9f5a59253c640.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-7d8f8980687bae4b33d568d349153310.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-4f56578543b54082a99f9a6be5275dd1.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-7d8f8980687bae4b33d568d349153310.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -275,7 +275,7 @@ ul.task-list li input[type="checkbox"] {
       <img src="../_static/ESPEI-logo-withtext.png" alt="" class="sidebar-logo dark-content py-0 d-lg-inline d-none">
       </a>
     <div class="sidebar-title mb-0 py-0">
-      <a href="../">ESPEI v0.9.2.dev10+g6e0ebfffe</a> 
+      <a href="../">ESPEI v0.9.2.dev24+ga7df58bde</a> 
         <div class="sidebar-tools-main">
   <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
 </div>
@@ -367,8 +367,8 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../how-to/recipes/mcmc-probability-convergence/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">MCMC Probability Convergence Plots</span></a>
+  <a href="../how-to/recipes/mcmc-corner-plots/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MCMC Corner Plots</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -379,8 +379,8 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../how-to/recipes/mcmc-corner-plots/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">MCMC Corner Plots</span></a>
+  <a href="../how-to/recipes/mcmc-probability-convergence/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MCMC Probability Convergence Plots</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -430,6 +430,12 @@ ul.task-list li input[type="checkbox"] {
   <div class="sidebar-item-container"> 
   <a href="../reference/dataset_schema.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">ESPEI Dataset Schema</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/reference_states.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reference States</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -495,6 +501,36 @@ ul.task-list li input[type="checkbox"] {
   <div class="sidebar-item-container"> 
   <a href="../reference/api/datasets.recursive_glob.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">datasets.recursive_glob</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/api/datasets.validate_dataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">datasets.validate_dataset</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/api/datasets.FixedConfigurationDataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">datasets.FixedConfigurationDataset</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/api/datasets.EquilibriumPropertyDataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">datasets.EquilibriumPropertyDataset</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/api/datasets.ActivityDataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">datasets.ActivityDataset</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/api/datasets.ZPFDataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">datasets.ZPFDataset</span></a>
   </div>
 </li>
       </ul>
@@ -694,65 +730,72 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#release-notes" id="toc-release-notes" class="nav-link active" data-scroll-target="#release-notes">Release Notes</a>
   <ul class="collapse">
-  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section">0.9.1 (2026-06-05)</a>
+  <li><a href="#unreleased" id="toc-unreleased" class="nav-link" data-scroll-target="#unreleased">Unreleased</a>
   <ul class="collapse">
   <li><a href="#improvements" id="toc-improvements" class="nav-link" data-scroll-target="#improvements">Improvements</a></li>
   <li><a href="#bug-fixes" id="toc-bug-fixes" class="nav-link" data-scroll-target="#bug-fixes">Bug fixes</a></li>
+  <li><a href="#deprecations" id="toc-deprecations" class="nav-link" data-scroll-target="#deprecations">Deprecations</a></li>
   <li><a href="#dependencies" id="toc-dependencies" class="nav-link" data-scroll-target="#dependencies">Dependencies</a></li>
+  </ul></li>
+  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section">0.9.1 (2026-06-05)</a>
+  <ul class="collapse">
+  <li><a href="#improvements-1" id="toc-improvements-1" class="nav-link" data-scroll-target="#improvements-1">Improvements</a></li>
+  <li><a href="#bug-fixes-1" id="toc-bug-fixes-1" class="nav-link" data-scroll-target="#bug-fixes-1">Bug fixes</a></li>
+  <li><a href="#dependencies-1" id="toc-dependencies-1" class="nav-link" data-scroll-target="#dependencies-1">Dependencies</a></li>
   </ul></li>
   <li><a href="#section-1" id="toc-section-1" class="nav-link" data-scroll-target="#section-1">0.9.0 (2024-08-12)</a>
   <ul class="collapse">
-  <li><a href="#improvements-1" id="toc-improvements-1" class="nav-link" data-scroll-target="#improvements-1">Improvements</a></li>
-  <li><a href="#dependencies-1" id="toc-dependencies-1" class="nav-link" data-scroll-target="#dependencies-1">Dependencies</a></li>
-  <li><a href="#deprecations" id="toc-deprecations" class="nav-link" data-scroll-target="#deprecations">Deprecations</a></li>
+  <li><a href="#improvements-2" id="toc-improvements-2" class="nav-link" data-scroll-target="#improvements-2">Improvements</a></li>
+  <li><a href="#dependencies-2" id="toc-dependencies-2" class="nav-link" data-scroll-target="#dependencies-2">Dependencies</a></li>
+  <li><a href="#deprecations-1" id="toc-deprecations-1" class="nav-link" data-scroll-target="#deprecations-1">Deprecations</a></li>
   </ul></li>
   <li><a href="#section-2" id="toc-section-2" class="nav-link" data-scroll-target="#section-2">0.8.10 (2024-01-30)</a>
   <ul class="collapse">
-  <li><a href="#improvements-2" id="toc-improvements-2" class="nav-link" data-scroll-target="#improvements-2">Improvements</a></li>
-  <li><a href="#bug-fixes-1" id="toc-bug-fixes-1" class="nav-link" data-scroll-target="#bug-fixes-1">Bug fixes</a></li>
-  <li><a href="#dependencies-2" id="toc-dependencies-2" class="nav-link" data-scroll-target="#dependencies-2">Dependencies</a></li>
+  <li><a href="#improvements-3" id="toc-improvements-3" class="nav-link" data-scroll-target="#improvements-3">Improvements</a></li>
+  <li><a href="#bug-fixes-2" id="toc-bug-fixes-2" class="nav-link" data-scroll-target="#bug-fixes-2">Bug fixes</a></li>
+  <li><a href="#dependencies-3" id="toc-dependencies-3" class="nav-link" data-scroll-target="#dependencies-3">Dependencies</a></li>
   </ul></li>
   <li><a href="#section-3" id="toc-section-3" class="nav-link" data-scroll-target="#section-3">0.8.9 (2022-08-04)</a>
   <ul class="collapse">
-  <li><a href="#improvements-3" id="toc-improvements-3" class="nav-link" data-scroll-target="#improvements-3">Improvements</a></li>
-  <li><a href="#deprecations-1" id="toc-deprecations-1" class="nav-link" data-scroll-target="#deprecations-1">Deprecations</a></li>
+  <li><a href="#improvements-4" id="toc-improvements-4" class="nav-link" data-scroll-target="#improvements-4">Improvements</a></li>
+  <li><a href="#deprecations-2" id="toc-deprecations-2" class="nav-link" data-scroll-target="#deprecations-2">Deprecations</a></li>
   </ul></li>
   <li><a href="#section-4" id="toc-section-4" class="nav-link" data-scroll-target="#section-4">0.8.8 (2022-05-22)</a>
   <ul class="collapse">
-  <li><a href="#improvements-4" id="toc-improvements-4" class="nav-link" data-scroll-target="#improvements-4">Improvements</a></li>
+  <li><a href="#improvements-5" id="toc-improvements-5" class="nav-link" data-scroll-target="#improvements-5">Improvements</a></li>
   </ul></li>
   <li><a href="#section-5" id="toc-section-5" class="nav-link" data-scroll-target="#section-5">0.8.7 (2022-02-21)</a>
   <ul class="collapse">
-  <li><a href="#improvements-5" id="toc-improvements-5" class="nav-link" data-scroll-target="#improvements-5">Improvements</a></li>
+  <li><a href="#improvements-6" id="toc-improvements-6" class="nav-link" data-scroll-target="#improvements-6">Improvements</a></li>
   </ul></li>
   <li><a href="#section-6" id="toc-section-6" class="nav-link" data-scroll-target="#section-6">0.8.6 (2022-01-25)</a>
   <ul class="collapse">
-  <li><a href="#improvements-6" id="toc-improvements-6" class="nav-link" data-scroll-target="#improvements-6">Improvements</a></li>
+  <li><a href="#improvements-7" id="toc-improvements-7" class="nav-link" data-scroll-target="#improvements-7">Improvements</a></li>
   </ul></li>
   <li><a href="#section-7" id="toc-section-7" class="nav-link" data-scroll-target="#section-7">0.8.5 (2021-08-09)</a>
   <ul class="collapse">
-  <li><a href="#improvements-7" id="toc-improvements-7" class="nav-link" data-scroll-target="#improvements-7">Improvements</a></li>
+  <li><a href="#improvements-8" id="toc-improvements-8" class="nav-link" data-scroll-target="#improvements-8">Improvements</a></li>
   </ul></li>
   <li><a href="#section-8" id="toc-section-8" class="nav-link" data-scroll-target="#section-8">0.8.4 (2021-06-06)</a>
   <ul class="collapse">
-  <li><a href="#improvements-8" id="toc-improvements-8" class="nav-link" data-scroll-target="#improvements-8">Improvements</a></li>
-  <li><a href="#deprecations-2" id="toc-deprecations-2" class="nav-link" data-scroll-target="#deprecations-2">Deprecations</a></li>
+  <li><a href="#improvements-9" id="toc-improvements-9" class="nav-link" data-scroll-target="#improvements-9">Improvements</a></li>
+  <li><a href="#deprecations-3" id="toc-deprecations-3" class="nav-link" data-scroll-target="#deprecations-3">Deprecations</a></li>
   </ul></li>
   <li><a href="#section-9" id="toc-section-9" class="nav-link" data-scroll-target="#section-9">0.8.3 (2021-05-08)</a>
   <ul class="collapse">
-  <li><a href="#improvements-9" id="toc-improvements-9" class="nav-link" data-scroll-target="#improvements-9">Improvements</a></li>
+  <li><a href="#improvements-10" id="toc-improvements-10" class="nav-link" data-scroll-target="#improvements-10">Improvements</a></li>
   </ul></li>
   <li><a href="#section-10" id="toc-section-10" class="nav-link" data-scroll-target="#section-10">0.8.2 (2021-05-05)</a>
   <ul class="collapse">
-  <li><a href="#improvements-10" id="toc-improvements-10" class="nav-link" data-scroll-target="#improvements-10">Improvements</a></li>
-  <li><a href="#deprecations-3" id="toc-deprecations-3" class="nav-link" data-scroll-target="#deprecations-3">Deprecations</a></li>
+  <li><a href="#improvements-11" id="toc-improvements-11" class="nav-link" data-scroll-target="#improvements-11">Improvements</a></li>
+  <li><a href="#deprecations-4" id="toc-deprecations-4" class="nav-link" data-scroll-target="#deprecations-4">Deprecations</a></li>
   </ul></li>
   <li><a href="#section-11" id="toc-section-11" class="nav-link" data-scroll-target="#section-11">0.8.1 (2021-04-22)</a></li>
   <li><a href="#section-12" id="toc-section-12" class="nav-link" data-scroll-target="#section-12">0.8 (2021-04-19)</a>
   <ul class="collapse">
-  <li><a href="#improvements-11" id="toc-improvements-11" class="nav-link" data-scroll-target="#improvements-11">Improvements</a></li>
+  <li><a href="#improvements-12" id="toc-improvements-12" class="nav-link" data-scroll-target="#improvements-12">Improvements</a></li>
   <li><a href="#breaking-changes" id="toc-breaking-changes" class="nav-link" data-scroll-target="#breaking-changes">Breaking changes</a></li>
-  <li><a href="#deprecations-4" id="toc-deprecations-4" class="nav-link" data-scroll-target="#deprecations-4">Deprecations</a></li>
+  <li><a href="#deprecations-5" id="toc-deprecations-5" class="nav-link" data-scroll-target="#deprecations-5">Deprecations</a></li>
   </ul></li>
   <li><a href="#section-13" id="toc-section-13" class="nav-link" data-scroll-target="#section-13">0.7.12 (2021-03-16)</a></li>
   <li><a href="#section-14" id="toc-section-14" class="nav-link" data-scroll-target="#section-14">0.7.11 (2021-03-12)</a></li>
@@ -767,8 +810,8 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#section-23" id="toc-section-23" class="nav-link" data-scroll-target="#section-23">0.7.2 (2019-06-12)</a></li>
   <li><a href="#section-24" id="toc-section-24" class="nav-link" data-scroll-target="#section-24">0.7.1 (2019-06-03)</a>
   <ul class="collapse">
-  <li><a href="#improvements-12" id="toc-improvements-12" class="nav-link" data-scroll-target="#improvements-12">Improvements</a></li>
-  <li><a href="#bug-fixes-2" id="toc-bug-fixes-2" class="nav-link" data-scroll-target="#bug-fixes-2">Bug fixes</a></li>
+  <li><a href="#improvements-13" id="toc-improvements-13" class="nav-link" data-scroll-target="#improvements-13">Improvements</a></li>
+  <li><a href="#bug-fixes-3" id="toc-bug-fixes-3" class="nav-link" data-scroll-target="#bug-fixes-3">Bug fixes</a></li>
   <li><a href="#other" id="toc-other" class="nav-link" data-scroll-target="#other">Other</a></li>
   </ul></li>
   <li><a href="#section-25" id="toc-section-25" class="nav-link" data-scroll-target="#section-25">0.6.2 (2018-11-27)</a></li>
@@ -806,26 +849,60 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="release-notes" class="level1">
 <h1>Release Notes</h1>
-<section id="section" class="level2">
-<h2 class="anchored" data-anchor-id="section">0.9.1 (2026-06-05)</h2>
+<section id="unreleased" class="level2">
+<h2 class="anchored" data-anchor-id="unreleased">Unreleased</h2>
 <section id="improvements" class="level3">
 <h3 class="anchored" data-anchor-id="improvements">Improvements</h3>
+<ul>
+<li>Fit Gibbs energy parameters to Gibbs energy (<code>GM</code>) data and to the temperature dependence of <code>HM</code> and <code>SM</code> data with the new <code>simultaneous_gibbs_energy_fitting_description</code>, and to absolute data without a reference state (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/304">issue 304</a>)</li>
+<li>Generalize reference states of fixed configuration data. Parameter selection and MCMC use the same <code>_FORM</code> and <code>_MIX</code> reference states, fixing bugs where excluded model contributions (e.g.&nbsp;magnetism) were handled differently between them. See the new <a href="https://espei.org/dev/reference/reference_states.html">Reference States</a> page (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/81">issue 81</a>, <a href="https://github.com/phasesresearchlab/espei/issues/305">issue 305</a>)</li>
+<li>Datasets are checked by pydantic models of each type of dataset (<code>FixedConfigurationDataset</code>, <code>EquilibriumPropertyDataset</code>, <code>ActivityDataset</code> and <code>ZPFDataset</code> in <code>espei.datasets</code>), and <code>espei.datasets.validate_dataset</code> returns the model of a dataset. Errors in a dataset are reported together, each with its location in the dataset. New checks catch datasets that were silently ignored, gave silently wrong results, or failed later with unclear errors, e.g.&nbsp;occupancies that don’t sum to one, <code>reference_states</code> with outputs that don’t use them, phase regions without a known phase composition, ZPF values with phases that are not in <code>phases</code>, and conditions that can’t be used. ZPF mole fractions given as strings and equilibrium property data of one component can now be loaded (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/269">issue 269</a>)</li>
+</ul>
+</section>
+<section id="bug-fixes" class="level3">
+<h3 class="anchored" data-anchor-id="bug-fixes">Bug fixes</h3>
+<ul>
+<li>Fix <code>SciPyOptimizer</code> minimizing the log-likelihood instead of maximizing it, and pass its <code>data_weights</code> to the residual functions (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/307">issue 307</a>)</li>
+<li>Fix <code>setup_context</code> and the optimizers modifying the symbols of the Database passed to them (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/307">issue 307</a>)</li>
+<li>Fix <code>ZPFResidual</code> and <code>EquilibriumPropertyResidual</code> giving parameter values to the wrong symbols when <code>symbols_to_fit</code> is not sorted (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/307">issue 307</a>)</li>
+<li>Fix the <code>"disordered"</code> flag of ZPF data, and fitting data of phases with equivalent sublattices, data with a weight for each configuration, fixed configuration data without <code>solver.mode</code> and equilibrium property data of one component (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/308">issue 308</a>)</li>
+</ul>
+</section>
+<section id="deprecations" class="level3">
+<h3 class="anchored" data-anchor-id="deprecations">Deprecations</h3>
+<ul>
+<li><code>espei.datasets.check_dataset</code> and <code>espei.datasets.clean_dataset</code> are deprecated and will be removed in ESPEI 0.11. Use <code>espei.datasets.validate_dataset</code> instead. <code>espei.datasets.recursive_map</code> is removed.</li>
+<li>Sublattices of one species given as the species in fixed configuration datasets are deprecated. Give every sublattice as a list, e.g.&nbsp;<code>[["CU"], ["CU", "MG"]]</code> with occupancies <code>[[1.0], [0.25, 0.75]]</code> rather than <code>["CU", ["CU", "MG"]]</code> with <code>[1.0, [0.25, 0.75]]</code>. <code>espei --check-datasets</code> lists the datasets to update (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/308">issue 308</a>)</li>
+</ul>
+</section>
+<section id="dependencies" class="level3">
+<h3 class="anchored" data-anchor-id="dependencies">Dependencies</h3>
+<ul>
+<li>Require pycalphad 0.12 or later.</li>
+<li>Support Python 3.14 and 3.15 (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/306">issue 306</a>)</li>
+</ul>
+</section>
+</section>
+<section id="section" class="level2">
+<h2 class="anchored" data-anchor-id="section">0.9.1 (2026-06-05)</h2>
+<section id="improvements-1" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-1">Improvements</h3>
 <ul>
 <li>Add ability to pass a <code>legend_generator</code> to <code>dataplot</code> for custom phase legends for phase diagrams (<a href="https://github.com/rushigong">@rushigong</a> - <a href="https://github.com/phasesresearchlab/espei/issues/265">issue 265</a>)</li>
 <li>Add features to support upcoming mobility fitting features that will land in <a href="https://kawin.org/">Kawin</a> (<a href="https://github.com/nury12n">@nury12n</a> - <a href="https://github.com/phasesresearchlab/espei/issues/264">issue 264</a>)</li>
 <li>Improve debug log messages in ZPF error to handle convergence failures due to underdetermined chemical potentials (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/274">issue 274</a>)</li>
 </ul>
 </section>
-<section id="bug-fixes" class="level3">
-<h3 class="anchored" data-anchor-id="bug-fixes">Bug fixes</h3>
+<section id="bug-fixes-1" class="level3">
+<h3 class="anchored" data-anchor-id="bug-fixes-1">Bug fixes</h3>
 <ul>
 <li>Fix <code>TypeError</code> from expired deprecations in NumPy 2.4.2 (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/285">issue 285</a>)</li>
 <li>Support installing from Git URLs (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/287">issue 287</a>)</li>
 <li>Fix a bug where duplicated excluded model contribution entries resulted in datasets being incorrectly filtered out (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/263">issue 263</a>)</li>
 </ul>
 </section>
-<section id="dependencies" class="level3">
-<h3 class="anchored" data-anchor-id="dependencies">Dependencies</h3>
+<section id="dependencies-1" class="level3">
+<h3 class="anchored" data-anchor-id="dependencies-1">Dependencies</h3>
 <ul>
 <li>Removed <code>pkg_resources</code> dependency for plugin discovery, preferring the currently reccomended <code>importlib.metadata.entry_points</code> (<a href="https://github.com/jmmshn">@jmmshn</a> - <a href="https://github.com/phasesresearchlab/espei/issues/266">issue 266</a>)</li>
 <li>Use <a href="https://docs.astral.sh/uv/">uv</a> for package management in CI. We reccomend using <code>uv</code> for development. (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/273">issue 273</a>)</li>
@@ -840,8 +917,8 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="section-1" class="level2">
 <h2 class="anchored" data-anchor-id="section-1">0.9.0 (2024-08-12)</h2>
-<section id="improvements-1" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-1">Improvements</h3>
+<section id="improvements-2" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-2">Improvements</h3>
 <ul>
 <li>Migrate to PyCalphad Workspace (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/256">issue 256</a>)
 <ul>
@@ -850,15 +927,15 @@ ul.task-list li input[type="checkbox"] {
 </ul></li>
 </ul>
 </section>
-<section id="dependencies-1" class="level3">
-<h3 class="anchored" data-anchor-id="dependencies-1">Dependencies</h3>
+<section id="dependencies-2" class="level3">
+<h3 class="anchored" data-anchor-id="dependencies-2">Dependencies</h3>
 <ul>
 <li>Update minimum required PyCalphad version to 0.11 (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/259">issue 259</a>)</li>
 <li>Add NumPy 2.0 support (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/255">issue 255</a>)</li>
 </ul>
 </section>
-<section id="deprecations" class="level3">
-<h3 class="anchored" data-anchor-id="deprecations">Deprecations</h3>
+<section id="deprecations-1" class="level3">
+<h3 class="anchored" data-anchor-id="deprecations-1">Deprecations</h3>
 <ul>
 <li>Remove code scheduled for deprecation in ESPEI 0.9: deprecations (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/257">issue 257</a>)
 <ul>
@@ -870,8 +947,8 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="section-2" class="level2">
 <h2 class="anchored" data-anchor-id="section-2">0.8.10 (2024-01-30)</h2>
-<section id="improvements-2" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-2">Improvements</h3>
+<section id="improvements-3" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-3">Improvements</h3>
 <ul>
 <li>Add a generic framework for property model parameter generation (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/251">issue 251</a>)</li>
 <li>Improve performance for generating candidate models with many features (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/254">issue 254</a>)</li>
@@ -879,16 +956,16 @@ ul.task-list li input[type="checkbox"] {
 <li>Support checking only a single dataset from command line (<a href="https://github.com/zhyrek">@zhyrek</a> - <a href="https://github.com/phasesresearchlab/espei/issues/244">issue 244</a>)</li>
 </ul>
 </section>
-<section id="bug-fixes-1" class="level3">
-<h3 class="anchored" data-anchor-id="bug-fixes-1">Bug fixes</h3>
+<section id="bug-fixes-2" class="level3">
+<h3 class="anchored" data-anchor-id="bug-fixes-2">Bug fixes</h3>
 <ul>
 <li>Fix <code>dataplot()</code> for ternary cases with that use <code>__HYPERPLANE__</code> (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/252">issue 252</a>)</li>
 <li>Fix <code>Residual</code> protocol for MCMC for newer Python versions (3.11+) (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/253">issue 253</a>)</li>
 <li>Correctly pass parameters through <code>calculate_activity_error()</code> (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/246">issue 246</a>)</li>
 </ul>
 </section>
-<section id="dependencies-2" class="level3">
-<h3 class="anchored" data-anchor-id="dependencies-2">Dependencies</h3>
+<section id="dependencies-3" class="level3">
+<h3 class="anchored" data-anchor-id="dependencies-3">Dependencies</h3>
 <ul>
 <li>Update pycalphad minimum version to 0.10.4 to support new property modeling framework (<a href="https://github.com/bocklund">@bocklund</a>)</li>
 <li>Migrate to pydantic v2 (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/247">issue 247</a>, <a href="https://github.com/phasesresearchlab/espei/issues/248">issue 248</a>)</li>
@@ -898,15 +975,15 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="section-3" class="level2">
 <h2 class="anchored" data-anchor-id="section-3">0.8.9 (2022-08-04)</h2>
-<section id="improvements-3" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-3">Improvements</h3>
+<section id="improvements-4" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-4">Improvements</h3>
 <ul>
 <li>Support varying pressure and P-X plots in <code>dataplot()</code> and <code>ravel_zpf_values()</code> (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/240">issue 240</a>)</li>
 <li>MCMC: Refactor residual/likelihood functions to better support custom user data types and likelihood functions (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/236">issue 236</a>)</li>
 </ul>
 </section>
-<section id="deprecations-1" class="level3">
-<h3 class="anchored" data-anchor-id="deprecations-1">Deprecations</h3>
+<section id="deprecations-2" class="level3">
+<h3 class="anchored" data-anchor-id="deprecations-2">Deprecations</h3>
 <ul>
 <li>Drop Python 3.7 (following NEP-29) (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/237">issue 237</a>)</li>
 <li>Remove custom graph of optimizer history (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/235">issue 235</a>)</li>
@@ -915,8 +992,8 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="section-4" class="level2">
 <h2 class="anchored" data-anchor-id="section-4">0.8.8 (2022-05-22)</h2>
-<section id="improvements-4" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-4">Improvements</h3>
+<section id="improvements-5" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-5">Improvements</h3>
 <ul>
 <li>Generalize entering the <code>__HYPERPLANE__</code> phase in ZPF vertices to control the compositions for the target hyperplane (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/221">issue 221</a>)</li>
 <li>Update for CompositionSet-based solver in pycalphad 0.10.1 (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/232">issue 232</a>)</li>
@@ -927,8 +1004,8 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="section-5" class="level2">
 <h2 class="anchored" data-anchor-id="section-5">0.8.7 (2022-02-21)</h2>
-<section id="improvements-5" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-5">Improvements</h3>
+<section id="improvements-6" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-6">Improvements</h3>
 <ul>
 <li>Add support for Python 3.10 (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/227">issue 227</a>)</li>
 <li>Add support for changes in pycalphad 0.10 that use SymEngine as the symbolic backend (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/212">issue 212</a>)</li>
@@ -938,8 +1015,8 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="section-6" class="level2">
 <h2 class="anchored" data-anchor-id="section-6">0.8.6 (2022-01-25)</h2>
-<section id="improvements-6" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-6">Improvements</h3>
+<section id="improvements-7" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-7">Improvements</h3>
 <ul>
 <li>Significant performance improvement in startup time in MCMC for ZPF data and decrease in runtime memory usage (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/210">issue 210</a>)</li>
 <li>Improve sampling of energy surface for finding constrained driving forces in ZPF data, at least one energy surface sample is now guaranteed (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/211">issue 211</a>)</li>
@@ -951,8 +1028,8 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="section-7" class="level2">
 <h2 class="anchored" data-anchor-id="section-7">0.8.5 (2021-08-09)</h2>
-<section id="improvements-7" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-7">Improvements</h3>
+<section id="improvements-8" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-8">Improvements</h3>
 <ul>
 <li>Migrate to the new pycalphad internal APIs for the minimizer and <code>calculate</code> utilities (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/201">issue 201</a> and <a href="https://github.com/phasesresearchlab/espei/issues/206">issue 206</a>)</li>
 <li>Improve AICc formulation to have more consistent behavior when the number of data points is small (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/205">issue 205</a>)</li>
@@ -962,8 +1039,8 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="section-8" class="level2">
 <h2 class="anchored" data-anchor-id="section-8">0.8.4 (2021-06-06)</h2>
-<section id="improvements-8" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-8">Improvements</h3>
+<section id="improvements-9" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-9">Improvements</h3>
 <ul>
 <li>Migrate to pycalphad’s new minimizer (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/196">issue 196</a>)</li>
 <li>Fix a memory issue in large sublattice models by using the new minimizer to implement constrained driving forces (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/196">issue 196</a>)</li>
@@ -975,8 +1052,8 @@ ul.task-list li input[type="checkbox"] {
 <li>Documentation: Switch from <code>sphinx_rtd_theme</code> to <code>furo</code> theme (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/193">issue 193</a>)</li>
 </ul>
 </section>
-<section id="deprecations-2" class="level3">
-<h3 class="anchored" data-anchor-id="deprecations-2">Deprecations</h3>
+<section id="deprecations-3" class="level3">
+<h3 class="anchored" data-anchor-id="deprecations-3">Deprecations</h3>
 <ul>
 <li>pycalphad versions lower than 0.9.0 are no longer supported.</li>
 </ul>
@@ -984,8 +1061,8 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="section-9" class="level2">
 <h2 class="anchored" data-anchor-id="section-9">0.8.3 (2021-05-08)</h2>
-<section id="improvements-9" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-9">Improvements</h3>
+<section id="improvements-10" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-10">Improvements</h3>
 <ul>
 <li>Fix a bug where excluded model contributions could be double counted (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/181">issue 181</a>)</li>
 <li>Support internal API changes for pycalphad 0.8.5 (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/183">issue 183</a>)</li>
@@ -996,14 +1073,14 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="section-10" class="level2">
 <h2 class="anchored" data-anchor-id="section-10">0.8.2 (2021-05-05)</h2>
-<section id="improvements-10" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-10">Improvements</h3>
+<section id="improvements-11" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-11">Improvements</h3>
 <ul>
 <li>Fix weighting in model selection (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/176">issue 176</a>)</li>
 </ul>
 </section>
-<section id="deprecations-3" class="level3">
-<h3 class="anchored" data-anchor-id="deprecations-3">Deprecations</h3>
+<section id="deprecations-4" class="level3">
+<h3 class="anchored" data-anchor-id="deprecations-4">Deprecations</h3>
 <ul>
 <li><code>plot_parameters</code> is deprecated in favor of <code>plot_interaction</code> and <code>plot_endmember</code> (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/177">issue 177</a>)</li>
 </ul>
@@ -1020,8 +1097,8 @@ ul.task-list li input[type="checkbox"] {
 <section id="section-12" class="level2">
 <h2 class="anchored" data-anchor-id="section-12">0.8 (2021-04-19)</h2>
 <p>This is a major release with bug fixes and a backward compatible public API, but breaking changes in the behavior of parameter selection and MCMC parameter estimation. Some internal functions were deprecated.</p>
-<section id="improvements-11" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-11">Improvements</h3>
+<section id="improvements-12" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-12">Improvements</h3>
 <ul>
 <li>Revamped internal logging. For users, ESPEI now has namespaced logging and filters out all non-ESPEI logs (e.g.&nbsp;dask and matplotlib). This change also fixed a bug where changing the verbosity in Jupyter was not taking effect. (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/165">issue 165</a>)</li>
 <li>Fixed a bug where scalar weights of non-equilibrium thermochemical datasets were not being broadcasted correctly and raised errors. (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/154">issue 154</a>)</li>
@@ -1039,8 +1116,8 @@ ul.task-list li input[type="checkbox"] {
 <li>Remove deprecated <code>mcmc.py</code> (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/164">issue 164</a>)</li>
 </ul>
 </section>
-<section id="deprecations-4" class="level3">
-<h3 class="anchored" data-anchor-id="deprecations-4">Deprecations</h3>
+<section id="deprecations-5" class="level3">
+<h3 class="anchored" data-anchor-id="deprecations-5">Deprecations</h3>
 <ul>
 <li>Setting <code>mcmc.scheduler</code> to the string <code>"None"</code> to get a serial scheduler is deprecated. Users should use <code>null</code> in YAML/JSON or <code>None</code> in Python.</li>
 <li>Deprecated <code>multiplot</code> and <code>eqdataplot</code> in favor of having users compose <code>binplot</code> and <code>dataplot</code>. pycalphad’s <code>binplot</code> is much faster than <code>multiplot</code>. The extra functional call added is worth removing the maintenance burden and allows users to understand more explictly the difference between plotting data and plotting the calculated phase diagram. The documentation was updated to reflect this change and no longer uses <code>multiplot</code>. (<a href="https://github.com/bocklund">@bocklund</a> - <a href="https://github.com/phasesresearchlab/espei/issues/162">issue 162</a>)</li>
@@ -1136,8 +1213,8 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="section-24">0.7.1 (2019-06-03)</h2>
 <p>This is a significant update reflecting many internal improvements, new features, and bug fixes. Users using the YAML input or the <code>run_espei</code> Python API should see entirely backwards compatible changes with ESPEI 0.6.2.</p>
 <p>pycalphad 0.8, which introduced many <a href="https://pycalphad.org/docs/latest/CHANGES.html">key features</a> for these changes is now required. This should almost completely eliminate the time to build phases due to the symengine backend (phases will likely build in less time than to call the MCMC objective function). Users can expect a slight performance improvement for MCMC fitting.</p>
-<section id="improvements-12" class="level3">
-<h3 class="anchored" data-anchor-id="improvements-12">Improvements</h3>
+<section id="improvements-13" class="level3">
+<h3 class="anchored" data-anchor-id="improvements-13">Improvements</h3>
 <ul>
 <li>Priors can now be specified and are documented online.</li>
 <li>Weights for different datasets are added and are supported by a <code>"weight"</code> key at the top level of any dataset.</li>
@@ -1148,8 +1225,8 @@ ul.task-list li input[type="checkbox"] {
 <li>Datasets and input YAML files now have a tag system where tags that are specified in the input YAML can override any keys/values in the JSON datasets at runtime. This is useful for tagging data with different weights/model contribution exclusions (e.g.&nbsp;DFT tags may get lower weights and can be set to exclude model contributions). If no tags are applied, removing ideal mixing from all thermochemical data is applied automatically for backwards compatibility. This backwards compatibility feature will be removed in the next major version of ESPEI (all model contributions will be included by default and exclusions must be specified manually).</li>
 </ul>
 </section>
-<section id="bug-fixes-2" class="level3">
-<h3 class="anchored" data-anchor-id="bug-fixes-2">Bug fixes</h3>
+<section id="bug-fixes-3" class="level3">
+<h3 class="anchored" data-anchor-id="bug-fixes-3">Bug fixes</h3>
 <ul>
 <li>Bug fixed where asymmetric ternary parameters were not properly replaced in SymPy</li>
 <li>Fixed error where ZPF error was considering the chemical potentials of stoichiometric phases in the target hyperplane (they are meaningless)</li>
